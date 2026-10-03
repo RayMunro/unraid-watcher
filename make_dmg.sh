@@ -13,6 +13,11 @@ STAGE=$(mktemp -d)
 cp -R "$NAME.app" "$STAGE/"
 ln -s /Applications "$STAGE/Applications"
 cp docs/Unraid-Watcher-Documentation.pdf "$STAGE/Documentation.pdf"
+# every guide as readable files too, keeping the folder layout so the links between them still work
+mkdir -p "$STAGE/Guides/docs/assets"
+cp README.md CHANGELOG.md "$STAGE/Guides/"
+cp docs/*.md "$STAGE/Guides/docs/"
+cp docs/assets/* "$STAGE/Guides/docs/assets/"
 cp LICENSE "$STAGE/LICENSE.txt"
 mkdir "$STAGE/.background"; swift tools/make_dmg_bg.swift "$STAGE/.background/bg.png"
 hdiutil detach "/Volumes/$VOL" -quiet 2>/dev/null || true
@@ -34,8 +39,9 @@ tell application "Finder"
     set background picture of opts to file ".background:bg.png"
     set position of item "$NAME.app" of container window to {180, 170}
     set position of item "Applications" of container window to {480, 170}
-    set position of item "Documentation.pdf" of container window to {230, 360}
-    set position of item "LICENSE.txt" of container window to {430, 360}
+    set position of item "Documentation.pdf" of container window to {170, 360}
+    set position of item "Guides" of container window to {330, 360}
+    set position of item "LICENSE.txt" of container window to {490, 360}
     update without registering applications
     delay 2
     close
