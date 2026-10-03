@@ -71,14 +71,15 @@ This redraws the icon in code and rewrites `Resources/AppIcon.icns`. Edit the dr
 
 ## Changing the version
 
-The version number appears in four places. Update all of them:
+The version number appears in five places. Update all of them:
 
 | File | What to change |
 |------|----------------|
-| `build_app.sh` | `CFBundleShortVersionString` in the generated `Info.plist` |
+| `build_app.sh` | `CFBundleShortVersionString` (and `CFBundleVersion`, the build number) in the generated `Info.plist` |
 | `make_dmg.sh` | `VER=` at the top (also names the DMG file) |
 | `Sources/UnraidWatcher/App.swift` | `.applicationVersion` in the About panel |
 | `Sources/UnraidWatcher/Views.swift` | The version text at the bottom of Settings |
+| `tools/make_docs_pdf.py` | `VERSION`, shown on the PDF cover |
 
 Also add an entry to [CHANGELOG.md](../CHANGELOG.md).
 
@@ -94,11 +95,11 @@ To remove the warning for everyone you need a paid Apple Developer Program membe
    ```
 2. Submit the DMG for notarization:
    ```sh
-   xcrun notarytool submit dist/Unraid-Watcher-1.0.dmg --keychain-profile "your-profile" --wait
+   xcrun notarytool submit dist/Unraid-Watcher-1.1.0.dmg --keychain-profile "your-profile" --wait
    ```
 3. Staple the ticket:
    ```sh
-   xcrun stapler staple dist/Unraid-Watcher-1.0.dmg
+   xcrun stapler staple dist/Unraid-Watcher-1.1.0.dmg
    ```
 
 ## Files that are not committed

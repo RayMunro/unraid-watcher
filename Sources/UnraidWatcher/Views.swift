@@ -766,7 +766,7 @@ struct SettingsView: View {
             Stepper("CPU warning at \(s.cpuWarnTemp)°C (needs SSH)", value: s.$cpuWarnTemp, in: 50...100)
             Button("Send test notification") { s.requestNotificationPermission(); s.sendNotification("Unraid Watcher", "Notifications are working.") }
             Button("Save & Connect") { s.start() }
-            Text("Unraid Watcher 1.0 · \(copyrightLine)").font(.caption).foregroundStyle(.secondary)
+            Text("Unraid Watcher 1.1.0 · \(copyrightLine)").font(.caption).foregroundStyle(.secondary)
         }
         .formStyle(.grouped).frame(width: 480).padding()
         .onAppear { login.refresh() }

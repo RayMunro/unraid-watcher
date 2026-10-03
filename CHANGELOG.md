@@ -4,9 +4,10 @@
 
 All notable changes to Unraid Watcher are listed here.
 
-## Unreleased
+## 1.1.0
 
-- **Launch at login:** a Settings option to start with your Mac, with an option to start in the menu bar only
+- **Launch at login:** a new Settings option to start Unraid Watcher with your Mac. A second option starts it in the menu bar only, so alerts keep working without opening a window. It uses macOS's own login item system, so it also appears in System Settings, General, Login Items.
+- **Documentation:** the guides, the troubleshooting page, and the PDF now cover launch at login.
 
 ## 1.0.0
 
