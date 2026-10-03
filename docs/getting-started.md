@@ -41,8 +41,9 @@ Use the same address you type in a browser to open the Unraid web interface, for
 ## 2. Connect Unraid Watcher
 
 1. Open Unraid Watcher.
-2. Open **Settings** with Cmd+, (or the app menu).
-3. Fill in:
+2. Open **Settings** with Cmd+, (or the app menu) and stay on the **Servers** tab.
+3. Click **+** to add a server (or select the one that is already there), then fill in:
+   - **Name**: anything you like, for example `Prime`
    - **Server URL**: your server address
    - **API key**: the key you created
 4. To use SSH features, turn on **Read temperatures & network over SSH** and fill in:
@@ -51,6 +52,10 @@ Use the same address you type in a browser to open the Unraid web interface, for
 5. Click **Save & Connect**.
 
 macOS may ask for your login keychain password the first time the app reads or writes the saved API key or SSH password. Enter it and choose **Always Allow**. This is a normal macOS prompt, and the app never sees your keychain password.
+
+### Adding more servers
+
+Repeat step 3 with another **+**. Each server has its own address, key, and SSH settings, and all of them are monitored at the same time. Switch between them with the picker at the top of the sidebar, or press Cmd+1, Cmd+2, and so on. See the [User guide](user-guide.md) for the all-servers overview.
 
 ## 3. Check that it works
 

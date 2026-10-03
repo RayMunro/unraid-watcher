@@ -34,24 +34,32 @@ func showAboutPanel() {
 @main
 struct UnraidWatcherApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @StateObject private var store = Store()
+    @StateObject private var manager = ServerManager()
     init() { migrateOldDefaults() }
 
     var body: some Scene {
         Window("Unraid Watcher", id: "main") {
-            ContentView()
-                .environmentObject(store)
+            RootView()
+                .environmentObject(manager)
                 .frame(minWidth: 860, minHeight: 560)
-                .task { store.start() }
         }
         .commands {
             CommandGroup(replacing: .appInfo) { Button("About Unraid Watcher") { showAboutPanel() } }
+            CommandMenu("Servers") {
+                ForEach(Array(manager.servers.prefix(9).enumerated()), id: \.element.id) { i, p in
+                    Button(p.name) { manager.select(p.id) }.keyboardShortcut(KeyEquivalent(Character("\(i + 1)")), modifiers: .command)
+                }
+                if manager.servers.count > 1 {
+                    Divider()
+                    Button("All Servers") { manager.select(nil) }.keyboardShortcut("0", modifiers: .command)
+                }
+            }
         }
-        Settings { SettingsView().environmentObject(store) }
+        Settings { SettingsView().environmentObject(manager) }
         MenuBarExtra {
-            MenuBarView().environmentObject(store)
+            MenuBarView().environmentObject(manager)
         } label: {
-            Image(systemName: store.connected ? "externaldrive.connected.to.line.below" : "externaldrive.badge.xmark")
+            Image(systemName: manager.allConnected ? "externaldrive.connected.to.line.below" : "externaldrive.badge.xmark")
         }
         .menuBarExtraStyle(.window)
     }

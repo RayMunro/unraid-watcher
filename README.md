@@ -10,6 +10,7 @@ Unraid Watcher shows you what your server is doing (array health, disks, contain
 
 ## Highlights
 
+- **Multiple servers:** monitor and control as many Unraid servers as you like, with an all-servers overview and a switcher
 - **Live overview** of CPU, memory, array state, Docker, VMs, and alerts
 - **Disk health:** usage, temperatures, parity history, and SMART details per disk
 - **Docker and VM control**, including VM creation, editing, cloning, and console access

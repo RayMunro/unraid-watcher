@@ -26,7 +26,7 @@ enum Section: String, CaseIterable, Identifiable {
     }
 }
 
-struct ContentView: View {
+struct ServerContentView: View {
     @EnvironmentObject var store: Store
     @State private var selection: Section? = .overview
 
@@ -36,8 +36,9 @@ struct ContentView: View {
                 Label(s.rawValue, systemImage: s.icon)
                     .badge(s == .notifications ? (store.notificationCounts?.total ?? 0) : 0)
             }
+            .safeAreaInset(edge: .top) { ServerPicker().padding(.horizontal, 10).padding(.top, 6).padding(.bottom, 4) }
             .safeAreaInset(edge: .bottom) { BrandFooter() }
-            .navigationSplitViewColumnWidth(min: 170, ideal: 190)
+            .navigationSplitViewColumnWidth(min: 190, ideal: 210)
         } detail: {
             VStack(spacing: 0) {
                 if let b = store.banner {
@@ -48,8 +49,8 @@ struct ContentView: View {
                 }
                 if !store.configured {
                     ContentUnavailableView {
-                        Label("Connect to your server", systemImage: "network")
-                    } description: { Text("Open Settings (⌘,) and enter your Unraid URL and API key.") }
+                        Label("Connect to \(store.profile.name)", systemImage: "network")
+                    } description: { Text("Open Settings (⌘,) and enter this server's URL and API key.") }
                     .overlay(alignment: .bottom) { SettingsLink { Text("Open Settings") }.padding(.bottom, 40) }
                 } else {
                     ScrollView {
@@ -79,7 +80,8 @@ struct ContentView: View {
                     if let t = store.lastUpdated { Text("Updated \(t, style: .time)").font(.caption).foregroundStyle(.secondary) }
                 }
             }
-            .navigationTitle(store.overview?.info?.os?.hostname ?? "Unraid")
+            .navigationTitle(store.profile.name)
+            .navigationSubtitle(store.overview?.info?.os?.hostname ?? "")
         }
     }
     func relevant(_ k: String) -> Bool {
@@ -706,74 +708,6 @@ struct NotificationsView: View {
 
 // MARK: - Menu bar & settings
 
-struct MenuBarView: View {
-    @EnvironmentObject var s: Store
-    @Environment(\.openWindow) private var openWindow
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(s.overview?.info?.os?.hostname ?? "Unraid").font(.headline)
-            if s.configured && s.connected {
-                Text("Array: \(s.array?.state ?? "-")")
-                Text(String(format: "CPU %.0f%%  ·  RAM %.0f%%", s.overview?.metrics?.cpu?.percentTotal ?? 0, s.overview?.metrics?.memory?.percentTotal ?? 0))
-                Text("Docker: \(s.containers.filter(\.isRunning).count)/\(s.containers.count) running")
-                if let n = s.notificationCounts?.total, n > 0 { Text("\(n) unread notifications").foregroundStyle(.orange) }
-            } else { Text(s.configured ? "Can't reach server" : "Not configured").foregroundStyle(.secondary) }
-            Divider()
-            Button("Open Dashboard") { openWindow(id: "main"); NSApp.activate(ignoringOtherApps: true) }
-            SettingsLink { Text("Settings…") }
-            Button("About Unraid Watcher") { showAboutPanel() }
-            Button("Quit") { NSApplication.shared.terminate(nil) }
-            Text(copyrightLine).font(.caption2).foregroundStyle(.secondary)
-        }.padding(12).frame(width: 240)
-    }
-}
-
-struct SettingsView: View {
-    @EnvironmentObject var s: Store
-    @StateObject private var login = LoginItem()
-    @AppStorage("hideWindowOnLoginLaunch") private var hideOnLogin = true
-    var body: some View {
-        Form {
-            TextField("Server URL", text: s.$serverURL, prompt: Text("http://192.168.1.10"))
-            SecureField("API key", text: $s.apiKey)
-            Toggle("Allow self-signed certificate", isOn: s.$allowInsecure)
-            Stepper("Refresh every \(s.refreshSeconds)s", value: s.$refreshSeconds, in: 2...300)
-            Text("Create a key in Unraid: Settings → Management Access → API Keys (needs Viewer role).")
-                .font(.caption).foregroundStyle(.secondary)
-            Toggle("Read temperatures & network over SSH", isOn: s.$sshEnabled)
-            TextField("SSH user", text: s.$sshUser).disabled(!s.sshEnabled)
-            SecureField("SSH password (optional)", text: $s.sshPassword).disabled(!s.sshEnabled)
-            Text("Leave the password empty to use your Mac's SSH keys. With a password it's stored in your Keychain and used for login.")
-                .font(.caption).foregroundStyle(.secondary)
-            Toggle("Launch at login", isOn: Binding(get: { login.isEnabled || login.needsApproval }, set: { login.set($0) }))
-            if login.isEnabled || login.needsApproval {
-                Toggle("Start in the menu bar only when launched at login", isOn: $hideOnLogin)
-            }
-            if login.needsApproval {
-                HStack {
-                    Text("macOS needs your approval: turn Unraid Watcher on in Login Items.").font(.caption).foregroundStyle(.orange)
-                    Button("Open Login Items") { login.openSystemSettings() }.controlSize(.small)
-                }
-            }
-            if let e = login.errorText { Text(e).font(.caption).foregroundStyle(.red) }
-            if !login.inApplications {
-                Text("Tip: move Unraid Watcher to your Applications folder first so the login item keeps working.")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            Toggle("Notify about alerts", isOn: s.$notifyEnabled)
-            Stepper("Disk warning at \(s.diskWarnTemp)°C", value: s.$diskWarnTemp, in: 30...70)
-            Stepper("Disk critical at \(s.diskCritTemp)°C", value: s.$diskCritTemp, in: 35...80)
-            Stepper("CPU warning at \(s.cpuWarnTemp)°C (needs SSH)", value: s.$cpuWarnTemp, in: 50...100)
-            Button("Send test notification") { s.requestNotificationPermission(); s.sendNotification("Unraid Watcher", "Notifications are working.") }
-            Button("Save & Connect") { s.start() }
-            Text("Unraid Watcher 1.1.0 · \(copyrightLine)").font(.caption).foregroundStyle(.secondary)
-        }
-        .formStyle(.grouped).frame(width: 480).padding()
-        .onAppear { login.refresh() }
-    }
-}
-
-
 // MARK: - SMART
 
 struct SmartView: View {
@@ -931,9 +865,9 @@ struct ControlsView: View {
     }
     var title: String {
         switch confirm {
-        case .stopArray: "Stop the array?"; case .parityCorrect: "Start a correcting parity check?"
-        case .reboot: "Reboot the server?"; case .shutdown: "Shut down the server?"
-        case .spinDownAll: "Spin down all disks?"; case nil: ""
+        case .stopArray: "Stop the array on \(s.profile.name)?"; case .parityCorrect: "Start a correcting parity check on \(s.profile.name)?"
+        case .reboot: "Reboot \(s.profile.name)?"; case .shutdown: "Shut down \(s.profile.name)?"
+        case .spinDownAll: "Spin down all disks on \(s.profile.name)?"; case nil: ""
         }
     }
     var message: String {

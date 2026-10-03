@@ -4,6 +4,15 @@
 
 All notable changes to Unraid Watcher are listed here.
 
+## Unreleased
+
+- **Multiple servers:** add as many Unraid servers as you like in Settings, each with its own address, API key, and SSH login. All of them are monitored and alert in the background.
+- **Server picker and overview:** switch servers from the sidebar or with Cmd+1 to Cmd+9, and see every server at a glance in the all-servers overview.
+- **Menu bar:** the panel lists every server, and the icon shows when any server is down.
+- **Notifications** name the server when you have more than one.
+- **Safer controls:** the array, reboot, and shutdown confirmations now say which server they apply to.
+- **Upgrading:** an existing single server and its saved passwords are migrated automatically.
+
 ## 1.1.0
 
 - **Launch at login:** a new Settings option to start Unraid Watcher with your Mac. A second option starts it in the menu bar only, so alerts keep working without opening a window. It uses macOS's own login item system, so it also appears in System Settings, General, Login Items.

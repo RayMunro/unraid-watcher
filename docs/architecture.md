@@ -19,7 +19,8 @@ docs/Unraid-Watcher-Documentation.pdf   The combined documentation
 Sources/UnraidWatcher/
   App.swift                      App entry, scenes, About panel, settings migration
   Client.swift                   GraphQL client, API models, Keychain helper
-  Store.swift                    Central state, polling loop, alerts
+  Servers.swift                  Server profiles, ServerManager, server picker, overview, menu bar, Settings
+  Store.swift                    State, polling loop, and alerts for one server
   Remote.swift                   SSH execution and parsing of server output
   Actions.swift                  Actions (API and SSH), SMART models and parser
   LoginItem.swift                Launch at login and quiet start in the menu bar
@@ -47,9 +48,15 @@ Sources/UnraidWatcher/
         +------------------+
 ```
 
+### Servers
+
+`ServerManager` owns the list of `ServerProfile` values (name, URL, SSH settings), saved as JSON in preferences, with each server's API key and SSH password in its own Keychain items. It creates one `Store` per server and starts every one, so all servers poll and alert in the background. It also tracks which server is selected, rebuilds a server's store when its settings are saved, and migrates the old single-server settings on first launch.
+
+The window shows the selected server's `Store` through the SwiftUI environment, so the existing views did not need to know about multiple servers. `AllServersView` and the menu bar read every store directly.
+
 ### The Store
 
-`Store` is the single source of truth. A `Task` loop calls `refresh()` every N seconds.
+Each `Store` is the source of truth for one server. A `Task` loop calls `refresh()` every N seconds.
 
 - **API data:** each GraphQL query runs as its own concurrent task (`async let`). Each returns a `Result`, so a failing query records an entry in the `errors` dictionary without affecting the others. Views show errors relevant to the current tab; errors for optional extras are grouped into a collapsed notice.
 - **SSH data:** if SSH is enabled, one `ssh` call fetches many sections at once. The output is parsed into a `RemoteSample`. Rates (network, disk I/O, per-core CPU) are computed from the difference between the current and previous samples and the elapsed time.
@@ -89,7 +96,7 @@ The project does not yet include an automated test target. During development th
 
 ## Security design
 
-- Secrets (API key, SSH password) are stored in the Keychain.
+- Secrets (API key, SSH password) are stored in the Keychain, separately for each server.
 - The SSH password reaches `ssh` only through an environment variable read by a helper script, so it is not written to disk or shown in process arguments.
 - Destructive operations require explicit confirmation in the UI.
 - The app connects only to the address you enter.

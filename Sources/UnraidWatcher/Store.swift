@@ -7,17 +7,28 @@ import UserNotifications
 
 @MainActor
 final class Store: ObservableObject {
-    @AppStorage("serverURL") var serverURL = ""
-    @AppStorage("allowInsecure") var allowInsecure = true
+    /// The server this store talks to. Secrets are passed in so the Keychain is read once, by the manager.
+    private(set) var profile: ServerProfile
+    private(set) var apiKey: String
+    private(set) var sshPassword: String
+    /// Set by the manager when more than one server exists, so notifications say which server they are about.
+    var showServerName = false
+
+    var serverURL: String { profile.url }
+    var allowInsecure: Bool { profile.allowInsecure }
+    var sshEnabled: Bool { profile.sshEnabled }
+    var sshUser: String { profile.sshUser }
+
+    // Preferences shared by every server (edited on the General tab of Settings)
     @AppStorage("notifyEnabled") var notifyEnabled = true
     @AppStorage("diskWarnTemp") var diskWarnTemp = 45
     @AppStorage("diskCritTemp") var diskCritTemp = 55
     @AppStorage("cpuWarnTemp") var cpuWarnTemp = 80
-    @AppStorage("sshEnabled") var sshEnabled = false
-    @AppStorage("sshUser") var sshUser = "root"
     @AppStorage("refreshSeconds") var refreshSeconds = 10
-    @Published var sshPassword = Keychain.get("sshPassword") { didSet { Keychain.set("sshPassword", sshPassword) } }
-    @Published var apiKey = Keychain.get("apiKey") { didSet { Keychain.set("apiKey", apiKey) } }
+
+    init(profile: ServerProfile, apiKey: String, sshPassword: String) {
+        self.profile = profile; self.apiKey = apiKey; self.sshPassword = sshPassword
+    }
 
     @Published var overview: Overview?
     @Published var array: ArrayInfo?
@@ -80,6 +91,8 @@ final class Store: ObservableObject {
         if !s.isEmpty && !s.contains("://") { s = "http://" + s }
         return s
     }
+
+    func stop() { task?.cancel(); task = nil }
 
     func start() {
         requestNotificationPermission()
@@ -241,15 +254,8 @@ final class Store: ObservableObject {
     }
 
     func sendNotification(_ title: String, _ body: String, id: String = UUID().uuidString) {
-        guard notifyEnabled, Bundle.main.bundleURL.pathExtension == "app" else { return }
-        let c = UNMutableNotificationContent()
-        c.title = title; c.body = body; c.sound = .default
-        UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: id, content: c, trigger: nil))
-    }
-
-    func requestNotificationPermission() {
-        guard Bundle.main.bundleURL.pathExtension == "app" else { return }
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        guard notifyEnabled else { return }
+        postNotification(showServerName ? "\(profile.name): \(title)" : title, body, id: "\(profile.id)-\(id)")
     }
 
     private func checkAlerts() {
@@ -317,4 +323,20 @@ final class Store: ObservableObject {
 
 func bytes(_ kb: Double, unitKB: Bool = true) -> String {
     ByteCountFormatter.string(fromByteCount: Int64(unitKB ? kb * 1024 : kb), countStyle: .decimal)
+}
+
+
+// MARK: - Notifications (shared)
+
+func requestNotificationPermission() {
+    guard Bundle.main.bundleURL.pathExtension == "app" else { return }
+    UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+}
+
+/// Posts a macOS notification. Callers decide whether notifications are enabled.
+func postNotification(_ title: String, _ body: String, id: String) {
+    guard Bundle.main.bundleURL.pathExtension == "app" else { return }
+    let c = UNMutableNotificationContent()
+    c.title = title; c.body = body; c.sound = .default
+    UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: id, content: c, trigger: nil))
 }

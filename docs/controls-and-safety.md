@@ -4,6 +4,10 @@
 
 Unraid Watcher can change things on your server, not just read them. This guide explains what each action does, what it needs, and what protects you from mistakes.
 
+## Several servers
+
+Actions always apply to the server you are viewing, which is named in the sidebar picker and at the top of the window. The confirmations for stopping the array, a correcting parity check, spinning down all disks, rebooting, and shutting down repeat the server's name. Read it before you confirm, especially if your servers have similar roles.
+
 ## Permissions
 
 | Method | Needed for |
@@ -12,7 +16,7 @@ Unraid Watcher can change things on your server, not just read them. This guide 
 | **Admin API key** | Container start, stop, pause, and resume; VM power actions; array start and stop; parity checks; archiving notifications |
 | **SSH** | Disk spin up and down, mover, reboot and shutdown, container restart and logs, SMART tests, VM details, creation, editing, cloning, media, and console, share settings and management, the command console |
 
-If you only want to monitor, use a Viewer key and leave SSH off. Nothing in the app can then change your server.
+Each server has its own key and its own SSH setting, so you can give a server you only watch a Viewer key and no SSH, and keep Admin access for the ones you manage. If you only want to monitor, use a Viewer key and leave SSH off. Nothing in the app can then change your server.
 
 ## Actions that ask for confirmation
 

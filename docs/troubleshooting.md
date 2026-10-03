@@ -4,11 +4,18 @@
 
 Every page shows problems as orange messages at the top. Problems with optional extras (license, services, UPS, parity history, and per-disk or per-container details) are grouped into one grey, collapsed line so they do not clutter the page. Click **Copy all errors** to copy every message at once.
 
+## Several servers
+
+- **One server shows Offline in the all-servers overview:** only that server has a problem. Open it and read the orange messages, or check its address and key in Settings, Servers.
+- **A server I expect is missing after upgrading:** servers from a single-server version become one server named after its address. If the list is empty, add it again with **+** in Settings, Servers.
+- **Notifications do not say which server:** the name is added only when you have two or more servers.
+- **I changed a server's settings and nothing happened:** click **Save & Connect**. Edits are applied only when you click it, and switching to another server in the list discards unsaved edits.
+
 ## Connection problems
 
 ### "A server with the specified hostname could not be found"
 
-The **Server URL** in Settings is wrong, or your Mac cannot resolve the name. Use the same address you type in a browser to reach Unraid, for example `http://192.168.1.10`. Try the IP address instead of a name if `tower.local` does not resolve.
+The **Server URL** for that server in Settings, Servers is wrong, or your Mac cannot resolve the name. Use the same address you type in a browser to reach Unraid, for example `http://192.168.1.10`. Try the IP address instead of a name if `tower.local` does not resolve.
 
 ### "Unauthorized (HTTP 401)" or "(HTTP 403)"
 

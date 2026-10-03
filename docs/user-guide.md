@@ -2,6 +2,17 @@
 
 # User guide
 
+## Working with several servers
+
+Every server you add in Settings is monitored in the background at the same time, so alerts keep working for all of them whichever one you are looking at.
+
+- **Server picker:** the box at the top of the sidebar shows the server you are viewing, with a dot that is green when connected, red when it cannot be reached, and grey when it has not been set up. Click it to switch servers, or choose **Manage servers** to open Settings.
+- **Keyboard:** the **Servers** menu in the menu bar lists your servers. Press Cmd+1 to Cmd+9 to jump to one, and Cmd+0 for the all-servers overview.
+- **All servers overview:** choose **All servers** in the picker for one card per server showing its status, array state and usage, CPU and memory, Docker and VM counts, hottest disk, and unread alerts. Click a card to open that server. **Refresh all** updates every server at once.
+- **Which server am I changing?** Everything in the tabs below applies to the server named in the picker and at the top of the window. Confirmations for the array, reboot, and shutdown controls repeat the server's name, so you can check before you confirm.
+
+The rest of this guide describes the tabs for one server.
+
 The window has a sidebar on the left and a detail area on the right. A footer at the bottom of the sidebar shows the app name and copyright. Click it to open the About window.
 
 The **refresh button** in the toolbar updates everything immediately. The app also refreshes on its own every few seconds (see [Settings](settings.md)).
@@ -158,7 +169,7 @@ The last 60 lines of the system log, with errors in red and warnings in orange. 
 
 ## Menu bar
 
-With **Launch at login** turned on in Settings, the app starts with your Mac and can stay in the menu bar only, so alerts keep working without a window. The menu bar icon shows a quick summary: hostname, array state, CPU and memory, Docker count, and unread notifications. From it you can open the dashboard, open Settings, open the About window, or quit. The icon changes when the server cannot be reached.
+With **Launch at login** turned on in Settings, the app starts with your Mac and can stay in the menu bar only, so alerts keep working without a window. The menu bar panel lists every server with a status dot, array state, CPU and memory, Docker count, and unread notifications. Click a server to open it in the dashboard. You can also open the dashboard, open Settings, open the About window, or quit. The icon changes to a crossed-out drive when any server cannot be reached.
 
 ## Banners
 

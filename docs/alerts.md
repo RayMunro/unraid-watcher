@@ -2,7 +2,9 @@
 
 # Alerts and notifications
 
-Unraid Watcher sends standard macOS notifications. Turn them on or off, and set temperature limits, in [Settings](settings.md).
+Unraid Watcher sends standard macOS notifications. Turn them on or off, and set temperature limits, on the General tab of [Settings](settings.md). The limits apply to every server.
+
+Every server is checked in the background all the time. When you have more than one server, each notification starts with the server's name, for example "Prime: Disk sdb running hot", so you know which one it is about.
 
 ## What triggers a notification
 
@@ -33,7 +35,7 @@ New unread notifications with **alert** or **warning** importance are forwarded.
 
 - macOS asks for notification permission the first time the app launches. If you declined, enable it in **System Settings, Notifications, Unraid Watcher**.
 - Notifications are sent only while the app is running. Turn on **Launch at login** in [Settings](settings.md) to keep monitoring after every restart. The app normally keeps running in the menu bar when its window is closed. Choose **Quit** from the menu bar panel to stop it.
-- If the server is unreachable, the app cannot see problems on it. A disconnected server shows as a crossed-out icon in the menu bar.
+- If a server is unreachable, the app cannot see problems on it. When any server is disconnected, the menu bar icon is crossed out, and that server shows as Offline in the all-servers overview.
 
 ## Testing
 
