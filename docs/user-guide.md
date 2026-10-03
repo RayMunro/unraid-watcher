@@ -147,6 +147,26 @@ VMs that use a physical disk device cannot be cloned automatically. Passthrough 
 
 The VM must be running.
 
+## Deluge
+
+A **Deluge** tab appears in the sidebar when the server runs Deluge, found by looking for a Docker container whose image or name contains "deluge" (for example the linuxserver.io image). If Deluge runs some other way, enter its address in Settings, Servers and the tab appears anyway.
+
+It talks to Deluge's own Web UI, so the Web UI must be enabled and reachable from your Mac. It needs the Web UI password. The default is `deluge`, which the app uses when no password is saved. Set yours under **Deluge Web UI password** in Settings, Servers.
+
+The panel shows:
+
+- **Download and Upload:** current speeds with a short history graph and any speed limit.
+- **Torrents:** the total, how many are downloading, seeding, paused, or in error, plus connections, DHT nodes, and free disk space.
+- **The torrent list:** each torrent with its state, a progress bar, size, speeds, ETA, ratio, seeds and peers, and tracker. Errors show Deluge's message. Filter by state, sort by date added, name, progress, speed, ratio, or size, and search by name.
+
+Actions:
+
+- **Pause all** and **Resume all**.
+- **Add magnet** adds a magnet link with Deluge's default settings.
+- **The three-dot menu on a torrent:** pause or resume it, force a recheck, copy its name, or remove it. Removing asks whether to keep the downloaded files or delete them too.
+
+The panel refreshes every few seconds, but only while it is open, so it adds no load on the server the rest of the time.
+
 ## Shares
 
 A list of shares with used and free space. Click a share to expand it.

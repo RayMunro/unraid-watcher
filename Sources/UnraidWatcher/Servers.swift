@@ -14,6 +14,23 @@ struct ServerProfile: Codable, Identifiable, Equatable, Hashable {
     var allowInsecure = true
     var sshEnabled = false
     var sshUser = "root"
+    /// Optional address of the Deluge Web UI. Empty means find it on the server automatically.
+    var delugeURL = ""
+
+    init() {}
+
+    // Servers saved by older versions lack newer keys, so every key is optional when decoding.
+    private enum Keys: String, CodingKey { case id, name, url, allowInsecure, sshEnabled, sshUser, delugeURL }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: Keys.self)
+        id = try c.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        name = try c.decodeIfPresent(String.self, forKey: .name) ?? "My Unraid"
+        url = try c.decodeIfPresent(String.self, forKey: .url) ?? ""
+        allowInsecure = try c.decodeIfPresent(Bool.self, forKey: .allowInsecure) ?? true
+        sshEnabled = try c.decodeIfPresent(Bool.self, forKey: .sshEnabled) ?? false
+        sshUser = try c.decodeIfPresent(String.self, forKey: .sshUser) ?? "root"
+        delugeURL = try c.decodeIfPresent(String.self, forKey: .delugeURL) ?? ""
+    }
 
     var host: String? {
         var s = url.trimmingCharacters(in: .whitespaces)
@@ -58,12 +75,13 @@ final class ServerManager: ObservableObject {
     }
 
     /// Adds a new server, or replaces an existing one, with its secrets. The server then reconnects.
-    func save(_ profile: ServerProfile, apiKey: String, sshPassword: String) {
+    func save(_ profile: ServerProfile, apiKey: String, sshPassword: String, delugePassword: String = "") {
         if let i = servers.firstIndex(where: { $0.id == profile.id }) { servers[i] = profile } else { servers.append(profile) }
         Keychain.set("apiKey.\(profile.id)", apiKey)
         Keychain.set("sshPassword.\(profile.id)", sshPassword)
+        Keychain.set("delugePassword.\(profile.id)", delugePassword)
         stores[profile.id]?.stop()
-        makeStore(for: profile, apiKey: apiKey, sshPassword: sshPassword)
+        makeStore(for: profile, apiKey: apiKey, sshPassword: sshPassword, delugePassword: delugePassword)
         persist()
         refreshNames()
         if selectedID == nil && servers.count == 1 { select(profile.id) }
@@ -81,7 +99,7 @@ final class ServerManager: ObservableObject {
     func remove(_ id: UUID) {
         stores[id]?.stop()
         stores[id] = nil; watchers[id] = nil
-        Keychain.set("apiKey.\(id)", ""); Keychain.set("sshPassword.\(id)", "")
+        Keychain.set("apiKey.\(id)", ""); Keychain.set("sshPassword.\(id)", ""); Keychain.set("delugePassword.\(id)", "")
         servers.removeAll { $0.id == id }
         persist()
         refreshNames()
@@ -94,8 +112,9 @@ final class ServerManager: ObservableObject {
         if let data = try? JSONEncoder().encode(servers) { UserDefaults.standard.set(data, forKey: Self.serversKey) }
     }
 
-    private func makeStore(for p: ServerProfile, apiKey: String? = nil, sshPassword: String? = nil) {
-        let s = Store(profile: p, apiKey: apiKey ?? Keychain.get("apiKey.\(p.id)"), sshPassword: sshPassword ?? Keychain.get("sshPassword.\(p.id)"))
+    private func makeStore(for p: ServerProfile, apiKey: String? = nil, sshPassword: String? = nil, delugePassword: String? = nil) {
+        let s = Store(profile: p, apiKey: apiKey ?? Keychain.get("apiKey.\(p.id)"), sshPassword: sshPassword ?? Keychain.get("sshPassword.\(p.id)"),
+                      delugePassword: delugePassword ?? Keychain.get("delugePassword.\(p.id)"))
         stores[p.id] = s
         // re-render the menu bar icon and server picker when a server goes up or down
         watchers[p.id] = s.$connected.removeDuplicates().sink { [weak self] _ in self?.objectWillChange.send() }
@@ -316,7 +335,7 @@ struct SettingsView: View {
             ServersSettings().tabItem { Label("Servers", systemImage: "server.rack") }
             GeneralSettings().tabItem { Label("General", systemImage: "gearshape") }
         }
-        .frame(width: 680, height: 560)
+        .frame(width: 680, height: 620)
     }
 }
 
@@ -326,6 +345,7 @@ struct ServersSettings: View {
     @State private var draft = ServerProfile()
     @State private var apiKey = ""
     @State private var sshPassword = ""
+    @State private var delugePassword = ""
     @State private var confirmRemove = false
 
     var body: some View {
@@ -371,8 +391,12 @@ struct ServersSettings: View {
             SecureField("SSH password (optional)", text: $sshPassword).disabled(!draft.sshEnabled)
             Text("Leave the password empty to use your Mac's SSH keys. A password is stored in your Keychain.")
                 .font(.caption).foregroundStyle(.secondary)
+            TextField("Deluge address (optional)", text: $draft.delugeURL, prompt: Text("Found automatically"))
+            SecureField("Deluge Web UI password", text: $delugePassword)
+            Text("If this server runs Deluge in Docker, a Deluge tab appears in the sidebar. The address is found automatically (Web UI port 8112 unless Docker publishes another). The Web UI's default password is \"deluge\", which is used when this field is empty.")
+                .font(.caption).foregroundStyle(.secondary)
             HStack {
-                Button("Save & Connect") { manager.save(draft, apiKey: apiKey, sshPassword: sshPassword) }
+                Button("Save & Connect") { manager.save(draft, apiKey: apiKey, sshPassword: sshPassword, delugePassword: delugePassword) }
                     .keyboardShortcut(.defaultAction).disabled(draft.name.isEmpty)
                 if let store {
                     if store.connected { Label("Connected", systemImage: "checkmark.circle.fill").foregroundStyle(.green).font(.caption) }
@@ -387,6 +411,7 @@ struct ServersSettings: View {
         draft = p
         apiKey = manager.stores[id]?.apiKey ?? ""
         sshPassword = manager.stores[id]?.sshPassword ?? ""
+        delugePassword = manager.stores[id]?.delugePassword ?? ""
     }
 }
 

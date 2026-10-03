@@ -19,8 +19,10 @@ Each server has its own settings and its own saved secrets:
 | **Read temperatures & network over SSH** | off | Master switch for every SSH-based feature on this server. |
 | **SSH user** | `root` | The account used to log in. |
 | **SSH password** | empty | Optional. Stored in the Keychain. Leave it empty to use your Mac's SSH keys. |
+| **Deluge address** | empty | Optional. Leave it empty and the app finds Deluge itself: it looks for a Deluge container and uses the Web UI port Docker publishes for it (8112 if none). Fill it in if Deluge runs elsewhere, uses HTTPS, or sits behind a reverse proxy, for example `https://deluge.home.lan`. |
+| **Deluge Web UI password** | empty | Stored in the Keychain. When empty, Deluge's default password `deluge` is used. |
 
-Removing a server deletes its saved API key and SSH password from your Keychain. Nothing changes on the server itself.
+Removing a server deletes its saved API key, SSH password, and Deluge password from your Keychain. Nothing changes on the server itself.
 
 The app allows plain HTTP, so a normal home setup works without certificates. On HTTP, the API key travels unencrypted across your network. Use a trusted local network, or set up HTTPS on your server and enter an `https://` address.
 
@@ -61,6 +63,7 @@ See [Alerts and notifications](alerts.md) for exactly when notifications fire.
 |------|----------|
 | API key | macOS Keychain, one item per server, named `apiKey.<server id>` |
 | SSH password | macOS Keychain, one item per server, named `sshPassword.<server id>` |
+| Deluge Web UI password | macOS Keychain, one item per server, named `delugePassword.<server id>` |
 | Server list (name, URL, SSH user, certificate and SSH switches) | App preferences (`com.raymondmunro.unraidwatcher`), under `servers` |
 | Which server is selected, thresholds, refresh interval, toggles | App preferences (`com.raymondmunro.unraidwatcher`) |
 | SSH password helper | A temporary script in the system temp folder, containing no secrets |

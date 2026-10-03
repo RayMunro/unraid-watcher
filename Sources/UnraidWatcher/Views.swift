@@ -6,11 +6,12 @@ import SwiftUI
 import Charts
 
 enum Section: String, CaseIterable, Identifiable {
-    case overview = "Overview", system = "System & Power", network = "Network & Temps", performance = "Performance", smart = "SMART Health", controls = "Controls", storage = "Array & Disks", docker = "Docker", vms = "VMs", shares = "Shares", notifications = "Notifications", logs = "Logs"
+    case overview = "Overview", deluge = "Deluge", system = "System & Power", network = "Network & Temps", performance = "Performance", smart = "SMART Health", controls = "Controls", storage = "Array & Disks", docker = "Docker", vms = "VMs", shares = "Shares", notifications = "Notifications", logs = "Logs"
     var id: String { rawValue }
     var icon: String {
         switch self {
         case .overview: "gauge.with.dots.needle.bottom.50percent"
+        case .deluge: "arrow.down.arrow.up.circle"
         case .system: "cpu"
         case .network: "network"
         case .performance: "speedometer"
@@ -32,7 +33,7 @@ struct ServerContentView: View {
 
     var body: some View {
         NavigationSplitView {
-            List(Section.allCases, id: \.self, selection: $selection) { s in
+            List(Section.allCases.filter { $0 != .deluge || store.delugeAvailable }, id: \.self, selection: $selection) { s in
                 Label(s.rawValue, systemImage: s.icon)
                     .badge(s == .notifications ? (store.notificationCounts?.total ?? 0) : 0)
             }
@@ -58,6 +59,7 @@ struct ServerContentView: View {
                             ErrorsPanel(visible: store.errors.filter { relevant($0.key) })
                             switch selection ?? .overview {
                             case .overview: OverviewView()
+                            case .deluge: DelugeView()
                             case .system: SystemView()
                             case .network: NetworkView()
                             case .performance: PerformanceView()
@@ -87,6 +89,7 @@ struct ServerContentView: View {
     func relevant(_ k: String) -> Bool {
         switch selection ?? .overview {
         case .overview: return ["Overview", "Array", "SSH"].contains(k)
+        case .deluge: return false
         case .system: return ["System details", "UPS", "License", "Services", "Flash", "Server"].contains(k)
         case .network, .performance, .logs, .smart: return k == "SSH"
         case .controls: return ["SSH", "Parity status", "Array"].contains(k)

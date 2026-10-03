@@ -33,6 +33,7 @@ Each server has its own key and its own SSH setting, so you can give a server yo
 | Extended SMART self-test | Can take hours and slows the disk |
 | Delete a share | Removes the share definition |
 | Remove a VM | Removes the definition only, disks are kept |
+| Remove a torrent in Deluge | Choose to keep the files, or delete them too (cannot be undone) |
 
 Actions that are easy to undo, such as starting a container, pausing a VM, or a short SMART test, run immediately.
 
@@ -61,6 +62,8 @@ The Console on the Controls tab runs exactly what you type, as the SSH user, wit
 | Force stop a VM | Risky, the guest may be left inconsistent |
 | Delete an empty share | Re-create it |
 | Remove a VM definition | Re-create it against the same disk |
+| Remove a torrent (keep files) | Re-add the torrent or magnet link |
+| Remove a torrent and delete files | No, the files are gone |
 | Shut down the server | Needs physical or out-of-band power on |
 | Command console | Depends entirely on the command |
 

@@ -87,6 +87,23 @@ A single connection reads, in one batch:
 
 Values that come from you or from the server (names, paths, device names) are validated and shell-quoted before they are used in a command.
 
+## Deluge
+
+When a server has a Deluge tab open, the app talks straight to Deluge's Web UI over HTTP (or HTTPS, if you gave an `https` address), on the Web UI port, at the path `/json`. This does not go through the Unraid API or SSH. Requests are JSON-RPC calls, and the Web UI keeps your login in a session cookie that the app holds in memory only.
+
+| Purpose | Calls |
+|---------|-------|
+| Log in | `auth.login` |
+| Torrent list and speeds | `web.update_ui` (one call returns every torrent plus session statistics) |
+| Attach the Web UI to the Deluge daemon if it is not attached | `web.get_hosts`, `web.connect` |
+| Pause and resume | `core.pause_torrents`, `core.resume_torrents` (older Deluge: `core.pause_torrent`, `core.resume_torrent`) |
+| Pause all and resume all | `core.pause_session`, `core.resume_session` (older Deluge: `core.pause_all_torrents`, `core.resume_all_torrents`) |
+| Recheck | `core.force_recheck` |
+| Remove, with or without files | `core.remove_torrent` |
+| Add a magnet link | `core.add_torrent_magnet` |
+
+The Deluge password travels to the Web UI in clear text if you use plain HTTP, like the Unraid API key. Use a trusted local network or an `https` address.
+
 ## What stays on your Mac
 
 - Fetched data is held in memory only. Nothing is written to disk except your settings and the Keychain items.

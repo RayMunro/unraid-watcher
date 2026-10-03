@@ -15,6 +15,7 @@ Unraid Watcher shows you what your server is doing (array health, disks, contain
 - **Disk health:** usage, temperatures, parity history, and SMART details per disk
 - **Docker and VM control**, including VM creation, editing, cloning, and console access
 - **Share management** with per-disk usage breakdowns
+- **Deluge panel** (when the server runs Deluge): speeds, every torrent, and pause, resume, remove, and add controls
 - **Performance and network** views: per-core load, disk I/O, fans, CPU temperatures, and traffic
 - **macOS notifications** for hot disks, a hot CPU, SMART problems, and new Unraid alerts
 - **Menu bar** summary that is always one click away, with an option to launch at login

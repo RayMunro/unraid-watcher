@@ -11,6 +11,7 @@ final class Store: ObservableObject {
     private(set) var profile: ServerProfile
     private(set) var apiKey: String
     private(set) var sshPassword: String
+    private(set) var delugePassword: String
     /// Set by the manager when more than one server exists, so notifications say which server they are about.
     var showServerName = false
 
@@ -26,9 +27,17 @@ final class Store: ObservableObject {
     @AppStorage("cpuWarnTemp") var cpuWarnTemp = 80
     @AppStorage("refreshSeconds") var refreshSeconds = 10
 
-    init(profile: ServerProfile, apiKey: String, sshPassword: String) {
-        self.profile = profile; self.apiKey = apiKey; self.sshPassword = sshPassword
+    init(profile: ServerProfile, apiKey: String, sshPassword: String, delugePassword: String = "") {
+        self.profile = profile; self.apiKey = apiKey; self.sshPassword = sshPassword; self.delugePassword = delugePassword
     }
+
+    // Deluge (loaded only while its tab is open)
+    @Published var delugeSnapshot: DelugeSnapshot?
+    @Published var delugeError: String?
+    @Published var delugeDownHistory: [Double] = []
+    @Published var delugeUpHistory: [Double] = []
+    var delugeClient: DelugeClient?
+    var delugeClientKey = ""
 
     @Published var overview: Overview?
     @Published var array: ArrayInfo?

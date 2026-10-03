@@ -87,6 +87,15 @@ If nothing appears:
 3. Make sure a Focus mode is not suppressing them.
 4. Confirm **Notify about alerts** is on.
 
+## Deluge
+
+- **There is no Deluge tab:** the app shows it only when it sees a Docker container with "deluge" in its image or name, or when you enter a Deluge address in Settings, Servers. Check the container's name and image, or fill in the address.
+- **"Deluge rejected the Web UI password":** enter the Web UI password under **Deluge Web UI password** in Settings, Servers. The default is `deluge`. This is the Web UI password, not the daemon password.
+- **"Connection refused" or a timeout:** the Web UI is not reachable at the address shown in the panel. Check that the container is running and publishes the Web UI port (8112 by default), or set the right address in Settings.
+- **"Doesn't look like the Deluge Web UI":** something else answered at that address. Check the port, and that any reverse proxy forwards the `/json` path.
+- **"No Deluge daemon to connect to":** the Web UI is running but is not linked to a daemon. Open the Deluge Web UI once in a browser and use its Connection Manager to add the daemon.
+- **Pause, resume, or remove fails:** the banner shows Deluge's own message. Copy it with the button on the banner.
+
 ## Launch at login
 
 - **The switch turns itself off or an error appears:** move the app to your **Applications** folder, open it from there, and try again.
