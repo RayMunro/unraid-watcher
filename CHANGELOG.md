@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/assets/icon.png" width="96" alt="Unraid Watcher icon"></p>
+
 # Changelog
 
 All notable changes to Unraid Watcher are listed here.

@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/icon.png" width="96" alt="Unraid Watcher icon"></p>
+
 # Troubleshooting
 
 Every page shows problems as orange messages at the top. Problems with optional extras (license, services, UPS, parity history, and per-disk or per-container details) are grouped into one grey, collapsed line so they do not clutter the page. Click **Copy all errors** to copy every message at once.

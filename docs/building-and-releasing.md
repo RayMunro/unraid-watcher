@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/icon.png" width="96" alt="Unraid Watcher icon"></p>
+
 # Building and releasing
 
 ## Requirements
@@ -40,14 +42,24 @@ security find-identity -v -p codesigning
 ./make_dmg.sh
 ```
 
-This builds the app, then produces `dist/Unraid-Watcher-<version>.dmg` containing the app, an Applications shortcut, and a styled background with an arrow. Steps performed:
+This builds the app and the documentation PDF, then produces `dist/Unraid-Watcher-<version>.dmg` containing the app, an Applications shortcut, `Documentation.pdf`, `LICENSE.txt`, and a styled background with an arrow. Steps performed:
 
-1. Build and sign the app.
+1. Build and sign the app, and build the documentation PDF.
 2. Draw the background (`tools/make_dmg_bg.swift`).
 3. Create a writable disk image and arrange the window using Finder scripting.
 4. Compress it to a read-only image and sign it.
 
 The first time, macOS may ask permission for your terminal to control Finder. Allow it for the styled window. If you decline, the DMG is still created and installs normally, just without the custom layout.
+
+## Build the documentation PDF
+
+```sh
+python3 tools/make_docs_pdf.py
+```
+
+This combines the README, every guide in `docs/`, and the changelog into `docs/Unraid-Watcher-Documentation.pdf`, with a cover page showing the app icon, a contents page, and page numbers. It needs only Python 3 and Google Chrome (used headless to print the PDF). Rebuild it whenever the documentation changes, then commit the new PDF.
+
+`make_dmg.sh` runs this step automatically and puts the PDF in the installer as `Documentation.pdf`, next to a copy of the license as `LICENSE.txt`.
 
 ## Regenerate the icon
 

@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/icon.png" width="96" alt="Unraid Watcher icon"></p>
+
 # Settings
 
 Open Settings with Cmd+, or from the menu bar panel. Changes to the connection take effect when you click **Save & Connect**.

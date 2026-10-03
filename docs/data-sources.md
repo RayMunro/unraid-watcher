@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/icon.png" width="96" alt="Unraid Watcher icon"></p>
+
 # Data sources
 
 This page lists everything Unraid Watcher asks of your server, so you can see exactly what it does and audit it. There are two channels: the Unraid GraphQL API and SSH.

@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/icon.png" width="96" alt="Unraid Watcher icon"></p>
+
 # User guide
 
 The window has a sidebar on the left and a detail area on the right. A footer at the bottom of the sidebar shows the app name and copyright. Click it to open the About window.

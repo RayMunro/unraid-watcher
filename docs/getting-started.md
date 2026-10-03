@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/icon.png" width="96" alt="Unraid Watcher icon"></p>
+
 # Getting started
 
 This guide takes you from a fresh install to a connected dashboard.

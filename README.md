@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/assets/icon.png" width="128" alt="Unraid Watcher icon"></p>
+
 # Unraid Watcher
 
 A native macOS dashboard and control panel for your Unraid server, with a menu bar status item.
@@ -50,6 +52,8 @@ The full walkthrough is in [Getting started](docs/getting-started.md).
 | [Architecture](docs/architecture.md) | How the code is organized |
 | [Building and releasing](docs/building-and-releasing.md) | Building the app, icon, and DMG installer |
 | [Changelog](CHANGELOG.md) | Version history |
+
+All of these guides are also combined into one PDF: [Unraid-Watcher-Documentation.pdf](docs/Unraid-Watcher-Documentation.pdf). The installer includes a copy.
 
 ## Privacy and security
 

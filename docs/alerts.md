@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/icon.png" width="96" alt="Unraid Watcher icon"></p>
+
 # Alerts and notifications
 
 Unraid Watcher sends standard macOS notifications. Turn them on or off, and set temperature limits, in [Settings](settings.md).

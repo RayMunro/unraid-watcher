@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/icon.png" width="96" alt="Unraid Watcher icon"></p>
+
 # Architecture
 
 Unraid Watcher is a single-target Swift Package that builds a SwiftUI macOS app. It has no third-party dependencies. It uses only Apple frameworks (SwiftUI, Charts, AppKit, Security, UserNotifications, Foundation).
@@ -11,6 +13,9 @@ make_dmg.sh                      Builds the DMG installer
 Resources/AppIcon.icns           App icon
 tools/make_icon.swift            Draws the icon and writes the .icns
 tools/make_dmg_bg.swift          Draws the DMG window background
+tools/make_docs_pdf.py            Builds the documentation PDF from the markdown files
+docs/assets/icon.png             App icon used in the docs and the PDF cover
+docs/Unraid-Watcher-Documentation.pdf   The combined documentation
 Sources/UnraidWatcher/
   App.swift                      App entry, scenes, About panel, settings migration
   Client.swift                   GraphQL client, API models, Keychain helper
