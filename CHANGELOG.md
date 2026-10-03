@@ -17,5 +17,6 @@ First release.
 - **Menu bar** status item with a quick summary
 - **Security:** API key and SSH password stored in the Keychain, SSH by key or password, confirmation for destructive actions
 - **Packaging:** app icon, About window, build scripts, and a DMG installer
+- **License:** GNU General Public License v3.0 or later
 
-© 2026 Ray Munro. All rights reserved.
+© 2026 Ray Munro. Licensed under the GNU General Public License v3.0 or later.

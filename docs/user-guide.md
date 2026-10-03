@@ -166,4 +166,4 @@ Results of actions appear in a banner at the top of the window. Green means succ
 
 Choose **About Unraid Watcher** from the app menu, the menu bar panel, or the sidebar footer. It shows the version and the copyright notice.
 
-© 2026 Ray Munro. All rights reserved.
+© 2026 Ray Munro. Licensed under the GNU General Public License v3.0 or later.

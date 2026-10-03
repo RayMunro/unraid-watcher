@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ray Munro
+
 import Foundation
 
 struct NetCounters { let rx: Double; let tx: Double }

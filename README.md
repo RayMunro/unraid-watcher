@@ -4,7 +4,7 @@ A native macOS dashboard and control panel for your Unraid server, with a menu b
 
 Unraid Watcher shows you what your server is doing (array health, disks, containers, VMs, shares, temperatures, network traffic, logs) and lets you act on it (start and stop containers and VMs, manage the array, run parity checks, create and clone VMs, manage shares) without opening the Unraid web interface.
 
-© 2026 Ray Munro. All rights reserved.
+© 2026 Ray Munro. Licensed under the GNU General Public License v3.0 or later.
 
 ## Highlights
 
@@ -59,4 +59,12 @@ The full walkthrough is in [Getting started](docs/getting-started.md).
 
 ## License
 
-© 2026 Ray Munro. All rights reserved.
+Unraid Watcher is free software: you can redistribute it and modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+It is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the [LICENSE](LICENSE) file for the full text.
+
+© 2026 Ray Munro. Licensed under the GNU General Public License v3.0 or later.
+
+## Disclaimer
+
+This is an independent project. It is not affiliated with, endorsed by, or sponsored by Lime Technology, Inc. Unraid is a trademark of Lime Technology, Inc. This software can change settings, stop services, and delete share and VM definitions on your server. Use it at your own risk and keep backups, as the license above makes clear.

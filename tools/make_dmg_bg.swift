@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ray Munro
+
 // Draws the DMG window background (660x400). Run: swift tools/make_dmg_bg.swift <output.png>
 import AppKit
 let w = 660, h = 400

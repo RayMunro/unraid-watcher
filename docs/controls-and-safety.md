@@ -65,4 +65,4 @@ The Console on the Controls tab runs exactly what you type, as the SSH user, wit
 - Keep an up-to-date backup of your flash drive. VM and share definitions live there.
 - After editing a VM's XML, check the VM in the Unraid web interface the first time.
 
-© 2026 Ray Munro. All rights reserved.
+© 2026 Ray Munro. Licensed under the GNU General Public License v3.0 or later.

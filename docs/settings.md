@@ -64,4 +64,4 @@ defaults delete com.raymondmunro.unraidwatcher
 
 To remove saved secrets, open **Keychain Access**, search for `apiKey` and `sshPassword`, and delete those items.
 
-© 2026 Ray Munro. All rights reserved.
+© 2026 Ray Munro. Licensed under the GNU General Public License v3.0 or later.

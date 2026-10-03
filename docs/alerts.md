@@ -43,4 +43,4 @@ Open Settings and click **Send test notification**. If nothing appears, check Sy
 - SSDs and NVMe drives run hotter by design. If you get frequent warnings for a cache drive, raise the warning limit slightly or improve airflow.
 - Your drives' own datasheets give their rated maximum temperature. Keep the critical limit safely below it.
 
-© 2026 Ray Munro. All rights reserved.
+© 2026 Ray Munro. Licensed under the GNU General Public License v3.0 or later.

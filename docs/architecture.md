@@ -97,4 +97,4 @@ The project does not yet include an automated test target. During development th
 5. For anything destructive, add a confirmation dialog.
 6. Document the new queries or commands in [Data sources](data-sources.md).
 
-© 2026 Ray Munro. All rights reserved.
+© 2026 Ray Munro. Licensed under the GNU General Public License v3.0 or later.

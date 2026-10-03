@@ -138,4 +138,4 @@ The share still contains files on at least one disk. Empty it first. This protec
 
 Click **Copy all errors** and, if relevant, copy the banner text of the failing action. Those two pieces of text usually identify the problem.
 
-© 2026 Ray Munro. All rights reserved.
+© 2026 Ray Munro. Licensed under the GNU General Public License v3.0 or later.

@@ -90,4 +90,4 @@ Values that come from you or from the server (names, paths, device names) are va
 - Fetched data is held in memory only. Nothing is written to disk except your settings and the Keychain items.
 - The app contacts no server other than the one you enter.
 
-© 2026 Ray Munro. All rights reserved.
+© 2026 Ray Munro. Licensed under the GNU General Public License v3.0 or later.

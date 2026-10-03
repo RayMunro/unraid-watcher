@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ray Munro
+
 import SwiftUI
 import AppKit
 
@@ -21,9 +24,9 @@ func showAboutPanel() {
         .applicationName: "Unraid Watcher",
         .applicationVersion: "1.0",
         .version: "",
-        .credits: NSAttributedString(string: "A native Mac dashboard and control panel for your Unraid server.\n\n\(copyrightLine). All rights reserved.",
+        .credits: NSAttributedString(string: "A native Mac dashboard and control panel for your Unraid server.\n\n\(copyrightLine). Licensed under the GNU GPL v3 or later.",
                                      attributes: [.font: NSFont.systemFont(ofSize: 11), .foregroundColor: NSColor.secondaryLabelColor]),
-        NSApplication.AboutPanelOptionKey(rawValue: "Copyright"): "\(copyrightLine). All rights reserved.",
+        NSApplication.AboutPanelOptionKey(rawValue: "Copyright"): "\(copyrightLine). Licensed under the GNU GPL v3 or later.",
     ])
     NSApp.activate(ignoringOtherApps: true)
 }

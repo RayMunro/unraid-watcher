@@ -1,4 +1,7 @@
-// Draws the Towerlight app icon and writes Resources/AppIcon.icns. Run: swift tools/make_icon.swift
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Ray Munro
+
+// Draws the Unraid Watcher app icon and writes Resources/AppIcon.icns. Run: swift tools/make_icon.swift
 import AppKit
 
 func draw(_ size: Int) -> Data {

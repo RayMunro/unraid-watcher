@@ -72,4 +72,4 @@ Unraid Watcher uses your Mac's SSH keys when no password is set. With a password
 - Tune thresholds in [Alerts and notifications](alerts.md).
 - Review [Controls and safety](controls-and-safety.md) before using the power and array controls.
 
-© 2026 Ray Munro. All rights reserved.
+© 2026 Ray Munro. Licensed under the GNU General Public License v3.0 or later.
