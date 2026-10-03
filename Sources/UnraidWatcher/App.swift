@@ -33,6 +33,7 @@ func showAboutPanel() {
 
 @main
 struct UnraidWatcherApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var store = Store()
     init() { migrateOldDefaults() }
 

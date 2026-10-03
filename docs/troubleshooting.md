@@ -80,6 +80,13 @@ If nothing appears:
 3. Make sure a Focus mode is not suppressing them.
 4. Confirm **Notify about alerts** is on.
 
+## Launch at login
+
+- **The switch turns itself off or an error appears:** move the app to your **Applications** folder, open it from there, and try again.
+- **Settings says macOS needs your approval:** open **System Settings, General, Login Items** and switch Unraid Watcher on. The **Open Login Items** button in Settings takes you there.
+- **The window opens at login even though you wanted the menu bar only:** check that **Start in the menu bar only when launched at login** is on. If the window still appears, close it, and the app keeps running in the menu bar.
+- **It did not start after a restart:** check that it is still listed and switched on in Login Items. Moving or replacing the app can drop the entry. Turn the option off and on again in Settings.
+
 ## Data that looks empty
 
 | Symptom | Reason |

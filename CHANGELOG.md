@@ -4,6 +4,10 @@
 
 All notable changes to Unraid Watcher are listed here.
 
+## Unreleased
+
+- **Launch at login:** a Settings option to start with your Mac, with an option to start in the menu bar only
+
 ## 1.0.0
 
 First release.

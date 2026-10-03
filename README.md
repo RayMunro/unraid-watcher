@@ -16,7 +16,7 @@ Unraid Watcher shows you what your server is doing (array health, disks, contain
 - **Share management** with per-disk usage breakdowns
 - **Performance and network** views: per-core load, disk I/O, fans, CPU temperatures, and traffic
 - **macOS notifications** for hot disks, a hot CPU, SMART problems, and new Unraid alerts
-- **Menu bar** summary that is always one click away
+- **Menu bar** summary that is always one click away, with an option to launch at login
 - **Secure by default:** the API key and SSH password live in the macOS Keychain
 
 ## Requirements

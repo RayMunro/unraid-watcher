@@ -32,7 +32,7 @@ New unread notifications with **alert** or **warning** importance are forwarded.
 ## Requirements and limits
 
 - macOS asks for notification permission the first time the app launches. If you declined, enable it in **System Settings, Notifications, Unraid Watcher**.
-- Notifications are sent only while the app is running. The app normally keeps running in the menu bar when its window is closed. Choose **Quit** from the menu bar panel to stop it.
+- Notifications are sent only while the app is running. Turn on **Launch at login** in [Settings](settings.md) to keep monitoring after every restart. The app normally keeps running in the menu bar when its window is closed. Choose **Quit** from the menu bar panel to stop it.
 - If the server is unreachable, the app cannot see problems on it. A disconnected server shows as a crossed-out icon in the menu bar.
 
 ## Testing

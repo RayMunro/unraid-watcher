@@ -29,6 +29,21 @@ How SSH login works:
 - With a password set, the app still offers your keys first, then falls back to the password. The password is passed to `ssh` through a small temporary helper script that reads it from the environment. It is never written to disk and never placed on a command line.
 - The first connection to a server accepts and remembers its host key automatically.
 
+## Startup
+
+| Setting | Default | Notes |
+|---------|---------|-------|
+| **Launch at login** | off | Starts Unraid Watcher automatically when you log in to your Mac, so alerts and the menu bar status keep working without you opening the app. |
+| **Start in the menu bar only when launched at login** | on | Appears once launch at login is on. At login the app starts quietly in the menu bar instead of opening its window. Choose **Open Dashboard** from the menu bar icon whenever you want the window. |
+
+How it works:
+
+- The app registers itself with macOS as a login item. You can also see and change this in **System Settings, General, Login Items**, and the two always agree.
+- If macOS asks for approval, Settings shows a notice with an **Open Login Items** button. Switch Unraid Watcher on there.
+- Login items work best when the app is in your **Applications** folder. Settings shows a tip if it is somewhere else, such as a mounted installer or the Downloads folder.
+- Opening the app yourself, at any time, always shows the window as normal. Only a launch by macOS at login starts hidden.
+- Turn **Launch at login** off at any time to remove it.
+
 ## Alerts
 
 | Setting | Default | Range | Notes |

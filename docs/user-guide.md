@@ -158,7 +158,7 @@ The last 60 lines of the system log, with errors in red and warnings in orange. 
 
 ## Menu bar
 
-The menu bar icon shows a quick summary: hostname, array state, CPU and memory, Docker count, and unread notifications. From it you can open the dashboard, open Settings, open the About window, or quit. The icon changes when the server cannot be reached.
+With **Launch at login** turned on in Settings, the app starts with your Mac and can stay in the menu bar only, so alerts keep working without a window. The menu bar icon shows a quick summary: hostname, array state, CPU and memory, Docker count, and unread notifications. From it you can open the dashboard, open Settings, open the About window, or quit. The icon changes when the server cannot be reached.
 
 ## Banners
 

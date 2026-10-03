@@ -730,6 +730,8 @@ struct MenuBarView: View {
 
 struct SettingsView: View {
     @EnvironmentObject var s: Store
+    @StateObject private var login = LoginItem()
+    @AppStorage("hideWindowOnLoginLaunch") private var hideOnLogin = true
     var body: some View {
         Form {
             TextField("Server URL", text: s.$serverURL, prompt: Text("http://192.168.1.10"))
@@ -743,6 +745,21 @@ struct SettingsView: View {
             SecureField("SSH password (optional)", text: $s.sshPassword).disabled(!s.sshEnabled)
             Text("Leave the password empty to use your Mac's SSH keys. With a password it's stored in your Keychain and used for login.")
                 .font(.caption).foregroundStyle(.secondary)
+            Toggle("Launch at login", isOn: Binding(get: { login.isEnabled || login.needsApproval }, set: { login.set($0) }))
+            if login.isEnabled || login.needsApproval {
+                Toggle("Start in the menu bar only when launched at login", isOn: $hideOnLogin)
+            }
+            if login.needsApproval {
+                HStack {
+                    Text("macOS needs your approval: turn Unraid Watcher on in Login Items.").font(.caption).foregroundStyle(.orange)
+                    Button("Open Login Items") { login.openSystemSettings() }.controlSize(.small)
+                }
+            }
+            if let e = login.errorText { Text(e).font(.caption).foregroundStyle(.red) }
+            if !login.inApplications {
+                Text("Tip: move Unraid Watcher to your Applications folder first so the login item keeps working.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             Toggle("Notify about alerts", isOn: s.$notifyEnabled)
             Stepper("Disk warning at \(s.diskWarnTemp)°C", value: s.$diskWarnTemp, in: 30...70)
             Stepper("Disk critical at \(s.diskCritTemp)°C", value: s.$diskCritTemp, in: 35...80)
@@ -752,6 +769,7 @@ struct SettingsView: View {
             Text("Unraid Watcher 1.0 · \(copyrightLine)").font(.caption).foregroundStyle(.secondary)
         }
         .formStyle(.grouped).frame(width: 480).padding()
+        .onAppear { login.refresh() }
     }
 }
 

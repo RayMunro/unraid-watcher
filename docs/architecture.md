@@ -22,6 +22,7 @@ Sources/UnraidWatcher/
   Store.swift                    Central state, polling loop, alerts
   Remote.swift                   SSH execution and parsing of server output
   Actions.swift                  Actions (API and SSH), SMART models and parser
+  LoginItem.swift                Launch at login and quiet start in the menu bar
   ShareVM.swift                  Share management and VM detail views
   VMEditor.swift                 VM creation, XML generation, edit sheet
   VMExtras.swift                 VM clone planning, media, console
