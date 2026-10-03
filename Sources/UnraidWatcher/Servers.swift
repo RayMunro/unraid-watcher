@@ -456,7 +456,7 @@ struct GeneralSettings: View {
                 postNotification("Unraid Watcher", "Notifications are working.", id: UUID().uuidString)
             }
 
-            Text("Unraid Watcher 1.1.0 · \(copyrightLine)").font(.caption).foregroundStyle(.secondary)
+            Text("Unraid Watcher 1.2.0 · \(copyrightLine)").font(.caption).foregroundStyle(.secondary)
         }
         .formStyle(.grouped)
         .onAppear { login.refresh() }

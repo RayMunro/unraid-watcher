@@ -4,9 +4,7 @@
 
 All notable changes to Unraid Watcher are listed here.
 
-## Unreleased
-
-- **Deluge panel:** a Deluge tab appears when a server runs Deluge. It shows live download and upload speeds, torrent counts, free space, and every torrent with progress, speeds, ETA, ratio, and peers, with filtering, sorting, and search. You can pause and resume torrents or everything at once, force a recheck, remove torrents with or without their files, and add magnet links. The Deluge address and Web UI password are set per server in Settings.
+## 1.2.0
 
 - **Multiple servers:** add as many Unraid servers as you like in Settings, each with its own address, API key, and SSH login. All of them are monitored and alert in the background.
 - **Server picker and overview:** switch servers from the sidebar or with Cmd+1 to Cmd+9, and see every server at a glance in the all-servers overview.
@@ -14,6 +12,8 @@ All notable changes to Unraid Watcher are listed here.
 - **Notifications** name the server when you have more than one.
 - **Safer controls:** the array, reboot, and shutdown confirmations now say which server they apply to.
 - **Upgrading:** an existing single server and its saved passwords are migrated automatically.
+- **Deluge panel:** a Deluge tab appears when a server runs Deluge. It shows live download and upload speeds, torrent counts, free space, and every torrent with progress, speeds, ETA, ratio, and peers, with filtering, sorting, and search. You can pause and resume torrents or everything at once, force a recheck, remove torrents with or without their files, and add magnet links. The Deluge address and Web UI password are set per server in Settings.
+- **Documentation:** the guides and the PDF now cover multiple servers and the Deluge panel.
 
 ## 1.1.0
 

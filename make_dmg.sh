@@ -2,7 +2,7 @@
 # Builds the app and packages it as dist/Unraid-Watcher-<version>.dmg
 set -e
 cd "$(dirname "$0")"
-VER=1.1.0
+VER=1.2.0
 NAME="Unraid Watcher"
 VOL="$NAME"
 OUT="dist/Unraid-Watcher-$VER.dmg"
