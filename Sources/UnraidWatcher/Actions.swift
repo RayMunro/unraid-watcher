@@ -107,7 +107,8 @@ extension Store {
             let out = try await Remote.exec(host: h, user: sshUser, password: sshPassword, script: cmd, allowFailure: allowFailure)
             if let ok { show(ok) }
             return out
-        } catch { show("SSH command failed: \(error.localizedDescription)", error: true); return nil }
+        } catch is CancellationError { return nil }      // stopped on purpose, so no error banner
+        catch { show("SSH command failed: \(error.localizedDescription)", error: true); return nil }
     }
 
     // Docker
@@ -206,7 +207,8 @@ extension Store {
                 }
             }
             smart = result; lastSmart = Date()
-        } catch { show("SMART read failed: \(error.localizedDescription)", error: true) }
+        } catch is CancellationError { }
+        catch { show("SMART read failed: \(error.localizedDescription)", error: true) }
     }
 }
 struct MutationResult: Decodable {}

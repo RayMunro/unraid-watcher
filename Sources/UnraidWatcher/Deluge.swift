@@ -234,6 +234,8 @@ struct DelugeView: View {
         let h = Int(t.eta) / 3600, m = Int(t.eta) % 3600 / 60
         return h >= 24 ? "\(h / 24)d \(h % 24)h" : h > 0 ? "\(h)h \(m)m" : m > 0 ? "\(m)m" : "\(Int(t.eta))s"
     }
+    /// Deluge reports a total of -1 when the tracker has not said how many there are.
+    func count(_ connected: Int, of total: Int) -> String { total >= 0 ? "\(connected)/\(total)" : "\(connected)" }
     func color(_ state: String) -> Color {
         switch state { case "Downloading": .blue; case "Seeding": .green; case "Paused": .gray; case "Error": .red; case "Checking", "Allocating", "Moving": .purple; default: .orange }
     }
@@ -321,12 +323,12 @@ struct DelugeView: View {
                             }
                             TorrentBar(fraction: t.progress / 100, color: color(t.state))
                             HStack(spacing: 12) {
-                                Text("\(String(format: "%.1f", t.progress))% of \(bytes(t.size, unitKB: false))")
+                                Text(t.size > 0 ? "\(String(format: "%.1f", t.progress))% of \(bytes(t.size, unitKB: false))" : "Size not known yet")
                                 if t.downRate > 0 { Text("↓ \(rate(t.downRate))").foregroundStyle(.green) }
                                 if t.upRate > 0 { Text("↑ \(rate(t.upRate))").foregroundStyle(.blue) }
                                 if !eta(t).isEmpty { Text("ETA \(eta(t))") }
-                                Text("Ratio \(String(format: "%.2f", t.ratio))")
-                                Text("\(t.seeds)/\(t.totalSeeds) seeds · \(t.peers)/\(t.totalPeers) peers")
+                                if t.ratio >= 0 { Text("Ratio \(String(format: "%.2f", t.ratio))") }
+                                Text("\(count(t.seeds, of: t.totalSeeds)) seeds · \(count(t.peers, of: t.totalPeers)) peers")
                                 if !t.tracker.isEmpty { Text(t.tracker).lineLimit(1) }
                             }.font(.caption).foregroundStyle(.secondary).monospacedDigit()
                             if t.isError, !t.message.isEmpty, t.message != "OK" { Text(t.message).font(.caption).foregroundStyle(.red) }
@@ -356,14 +358,21 @@ struct DelugeView: View {
 struct TorrentBar: View {
     let fraction: Double
     let color: Color
+    var height: CGFloat = 8
+    /// When set, written on the bar (only sensible on a taller bar).
+    var label: String? = nil
     var body: some View {
         let f = min(max(fraction, 0), 1)
         GeometryReader { g in
             ZStack(alignment: .leading) {
                 Capsule().fill(.quaternary)
                 Capsule().fill(color.opacity(0.85)).frame(width: g.size.width * f)
+                if let label {
+                    Text(label).font(.system(size: max(9, height * 0.7), weight: .bold).monospacedDigit()).foregroundStyle(.white)
+                        .shadow(color: .black.opacity(0.5), radius: 1).frame(maxWidth: .infinity)
+                }
             }
-        }.frame(height: 8)
+        }.frame(height: height)
     }
 }
 

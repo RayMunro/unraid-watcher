@@ -11,7 +11,7 @@ enum Section: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .overview: "gauge.with.dots.needle.bottom.50percent"
-        case .deluge: "arrow.down.arrow.up.circle"
+        case .deluge: "arrow.up.arrow.down.circle"
         case .system: "cpu"
         case .network: "network"
         case .performance: "speedometer"
@@ -35,7 +35,7 @@ struct ServerContentView: View {
         NavigationSplitView {
             List(Section.allCases.filter { $0 != .deluge || store.delugeAvailable }, id: \.self, selection: $selection) { s in
                 Label(s.rawValue, systemImage: s.icon)
-                    .badge(s == .notifications ? (store.notificationCounts?.total ?? 0) : 0)
+                    .badge(badge(for: s))
             }
             .safeAreaInset(edge: .top) { ServerPicker().padding(.horizontal, 10).padding(.top, 6).padding(.bottom, 4) }
             .safeAreaInset(edge: .bottom) { BrandFooter() }
@@ -86,6 +86,14 @@ struct ServerContentView: View {
             .navigationSubtitle(store.overview?.info?.os?.hostname ?? "")
         }
     }
+    /// A count on Notifications, and the percentage on Overview while the array is rebuilding or checking.
+    func badge(for s: Section) -> Text? {
+        switch s {
+        case .notifications: return (store.notificationCounts?.total ?? 0) > 0 ? Text("\(store.notificationCounts?.total ?? 0)") : nil
+        case .overview: return store.arrayOp.map { Text("\(Int($0.progress * 100))%") }
+        default: return nil
+        }
+    }
     func relevant(_ k: String) -> Bool {
         switch selection ?? .overview {
         case .overview: return ["Overview", "Array", "SSH"].contains(k)
@@ -128,7 +136,7 @@ struct BrandFooter: View {
 struct ErrorsPanel: View {
     @EnvironmentObject var store: Store
     let visible: [String: String]
-    static let optional: Set<String> = ["License", "Services", "Flash", "Server", "UPS", "Parity status", "Parity history",
+    static let optional: Set<String> = ["Array operation", "License", "Services", "Flash", "Server", "UPS", "Parity status", "Parity history",
                                         "Disk details", "Container details", "System details"]
     @State private var expanded = false
 
@@ -211,8 +219,37 @@ func stateColor(_ s: String?) -> Color {
     switch (s ?? "").uppercased() {
     case "STARTED", "RUNNING", "DISK_OK", "ONLINE": .green
     case "PAUSED", "IDLE", "DISK_NP_DSBL", "STARTING": .orange
-    case "STOPPED", "SHUTOFF", "EXITED", "DISK_DSBL", "DISK_INVALID": .gray
+    case "DISK_DSBL", "DISK_INVALID": .red
+    case "STOPPED", "SHUTOFF", "EXITED": .gray
     default: .secondary
+    }
+}
+
+// MARK: - Array operation
+
+/// Progress of a rebuild, parity build, parity check, or disk clear.
+struct ArrayOperationCard: View {
+    @EnvironmentObject var s: Store
+    var body: some View {
+        if let op = s.arrayOp {
+            Card(title: "Array operation") {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(op.title).font(.title3.bold())
+                    if op.paused { Pill(text: "Paused", color: .orange) }
+                    Spacer()
+                    Text(String(format: "%.1f%%", op.progress * 100)).font(.title2.bold().monospacedDigit())
+                }
+                TorrentBar(fraction: op.progress, color: op.paused ? .orange : .blue, height: 20, label: String(format: "%.1f%%", op.progress * 100))
+                HStack(spacing: 16) {
+                    Text("\(bytes(op.posKB)) of \(bytes(op.sizeKB))")
+                    if let sp = s.opSpeedKBps { Text("\(rate(sp * 1024))") }
+                    if let left = s.opSecondsLeft { Text("about \(durationText(left)) left") }
+                    else if op.paused { Text("waiting to be resumed") }
+                    else { Text("working out the time left…") }
+                }.font(.callout.monospacedDigit()).foregroundStyle(.secondary)
+                if let n = op.note { Text(n).font(.caption).foregroundStyle(.secondary) }
+            }
+        }
     }
 }
 
@@ -221,6 +258,17 @@ func stateColor(_ s: String?) -> Color {
 struct OverviewView: View {
     @EnvironmentObject var s: Store
     var body: some View {
+        ArrayOperationCard()
+        let failed = s.allDisks.filter { ["DISK_INVALID", "DISK_DSBL"].contains(($0.status ?? "").uppercased()) }
+        if !failed.isEmpty {
+            Card(title: "Array problems") {
+                ForEach(failed) { d in
+                    Label("\(d.name ?? "A disk") is reported as \((d.status ?? "").replacingOccurrences(of: "DISK_", with: ""))", systemImage: "exclamationmark.octagon.fill").foregroundStyle(.red)
+                }
+                Text(s.arrayOp != nil ? "Unraid is treating this disk as disabled or invalid, so its data is being emulated from parity. The operation above is working on it." : "Unraid is treating this disk as disabled or invalid, so its data may be emulated from parity. Check the array in the Unraid web interface.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
         if !s.hotDisks.isEmpty {
             Card(title: "Temperature alerts") {
                 ForEach(s.hotDisks, id: \.disk.id) { h in
@@ -246,7 +294,7 @@ struct OverviewView: View {
                 let m = s.overview?.metrics?.memory
                 Text(String(format: "%.0f%%", m?.percentTotal ?? 0)).font(.system(size: 34, weight: .bold, design: .rounded))
                 Spark(data: s.memHistory, color: .purple)
-                if let u = m?.used?.value, let t = m?.total?.value { Text("\(bytes(u, unitKB: false)) of \(bytes(t, unitKB: false))").font(.caption).foregroundStyle(.secondary) }
+                if let t = m?.total?.value, t > 0 { Text("\(bytes(m?.percentTotal.map { t * $0 / 100 } ?? m?.used?.value ?? 0, unitKB: false)) of \(bytes(t, unitKB: false))").font(.caption).foregroundStyle(.secondary) }
             }
         }
         HStack(alignment: .top, spacing: 16) {
@@ -298,7 +346,7 @@ struct DiskRow: View {
                 Text("\(bytes(d.fsUsed?.value ?? 0)) of \(bytes(size))").font(.caption).foregroundStyle(.secondary)
                 extraLine
             } else if let size = d.size?.value, size > 0 {
-                Text(bytes(size, unitKB: false)).font(.caption).foregroundStyle(.secondary)
+                Text(bytes(size)).font(.caption).foregroundStyle(.secondary)
             }
         }
     }
@@ -398,12 +446,17 @@ struct PerformanceView: View {
 
 struct LogsView: View {
     @EnvironmentObject var s: Store
+    @AppStorage("hideSSHNoise") private var hideNoise = true
+    /// Lines about SSH logins and sessions, which include this app's own connections.
+    func isNoise(_ l: String) -> Bool { l.contains("sshd") || l.contains("elogind-daemon") }
     var body: some View {
+        let lines = hideNoise ? s.logLines.filter { !isNoise($0) } : s.logLines
         if !s.sshEnabled { SSHNeeded() } else {
-            Card(title: "System log (last \(s.logLines.count) lines)") {
-                if s.logLines.isEmpty { Text("No log data yet").foregroundStyle(.secondary) }
+            Toggle("Hide SSH login lines", isOn: $hideNoise)
+            Card(title: "System log (\(lines.count) of the last \(s.logLines.count) lines)") {
+                if lines.isEmpty { Text(s.logLines.isEmpty ? "No log data yet" : "Only SSH login lines in the recent log. Turn off the filter to see them.").foregroundStyle(.secondary) }
                 VStack(alignment: .leading, spacing: 2) {
-                    ForEach(Array(s.logLines.enumerated()), id: \.offset) { _, l in
+                    ForEach(Array(lines.enumerated()), id: \.offset) { _, l in
                         let low = l.lowercased()
                         Text(l).font(.system(size: 11, design: .monospaced))
                             .foregroundStyle(low.contains("error") || low.contains("fail") || low.contains("critical") ? Color.red : low.contains("warn") ? .orange : .primary)
@@ -439,7 +492,7 @@ struct NetworkView: View {
             }
             if !other.isEmpty {
                 Card(title: "Other sensors") {
-                    ForEach(other) { t in HStack { Text("\(t.chip) · \(t.label)"); Spacer(); Text("\(Int(t.celsius))°C").monospacedDigit() }.font(.callout) }
+                    ForEach(other) { t in HStack { Text("\(t.group) · \(t.label)"); Spacer(); Text("\(Int(t.celsius))°C").monospacedDigit() }.font(.callout) }
                 }
             }
             Card(title: "Network traffic") {
@@ -454,7 +507,9 @@ struct NetworkView: View {
                     ForEach(Array(s.txHistory.enumerated()), id: \.offset) { i, v in
                         LineMark(x: .value("t", i), y: .value("B/s", v), series: .value("d", "Up")).foregroundStyle(.blue)
                     }
-                }.chartXAxis(.hidden).chartForegroundStyleScale(["Down": .green, "Up": .blue]).frame(height: 90)
+                }.chartXAxis(.hidden).chartForegroundStyleScale(["Down": .green, "Up": .blue])
+                .chartYAxis { AxisMarks { value in AxisGridLine(); AxisValueLabel { if let d = value.as(Double.self) { Text(rate(d)) } } } }
+                .frame(height: 110)
                 Divider()
                 ForEach(s.netRates) { r in
                     HStack { Text(r.iface).font(.body.weight(.medium)); Spacer()
@@ -785,13 +840,15 @@ struct SmartView: View {
 
 struct ControlsView: View {
     @EnvironmentObject var s: Store
-    enum Confirm: String, Identifiable { case stopArray, parityCorrect, reboot, shutdown, spinDownAll; var id: String { rawValue } }
+    enum Confirm: String, Identifiable { case stopArray, parityCorrect, reboot, shutdown, spinDownAll, cancelOperation; var id: String { rawValue } }
     @State private var confirm: Confirm?
+    @State private var cleaning = false
     @State private var command = ""
     @State private var history: [String] = []
 
     var body: some View {
         let state = (s.array?.state ?? "").uppercased()
+        Group {
         Card(title: "Array") {
             HStack {
                 Pill(text: s.array?.state ?? "-", color: stateColor(s.array?.state))
@@ -800,7 +857,18 @@ struct ControlsView: View {
                 else { Button("Start array") { Task { await s.setArray(start: true) } } }
             }
             Divider()
-            if let p = s.parityStatus, p.running == true {
+            if let op = s.arrayOp {
+                HStack { Text(op.title).font(.body.weight(.medium)); if op.paused { Pill(text: "Paused", color: .orange) }; Spacer()
+                    Text(String(format: "%.1f%%", op.progress * 100)).monospacedDigit() }
+                TorrentBar(fraction: op.progress, color: op.paused ? .orange : .blue, height: 16, label: String(format: "%.1f%%", op.progress * 100))
+                HStack {
+                    if op.paused { Button("Resume") { Task { await s.parity("resume") } } }
+                    else { Button("Pause") { Task { await s.parity("pause") } } }
+                    Button("Cancel…", role: .destructive) { confirm = .cancelOperation }
+                    Spacer()
+                    if let left = s.opSecondsLeft { Text("about \(durationText(left)) left").font(.caption).foregroundStyle(.secondary) }
+                }
+            } else if let p = s.parityStatus, p.running == true {
                 HStack { Text("Parity check \(p.paused == true ? "paused" : "running")"); Spacer()
                     Text("\(Int(p.progress?.value ?? 0))%  ·  \(Int(p.errors?.value ?? 0)) errors").monospacedDigit() }
                 UsageBar(fraction: (p.progress?.value ?? 0) / 100)
@@ -812,8 +880,8 @@ struct ControlsView: View {
             } else {
                 HStack {
                     Text("Parity check").foregroundStyle(.secondary); Spacer()
-                    Button("Start (read-only)") { Task { await s.startParity(correcting: false) } }.disabled(state != "STARTED")
-                    Button("Start (correct errors)…") { confirm = .parityCorrect }.disabled(state != "STARTED")
+                    Button("Start (read-only)") { Task { await s.startParity(correcting: false) } }.disabled(state != "STARTED" || s.arrayOp != nil)
+                    Button("Start (correct errors)…") { confirm = .parityCorrect }.disabled(state != "STARTED" || s.arrayOp != nil)
                 }
             }
         }
@@ -827,6 +895,13 @@ struct ControlsView: View {
                 Text("Mover (cache → array)").foregroundStyle(.secondary); Spacer()
                 Button("Start") { Task { await s.mover("start") } }
                 Button("Stop") { Task { await s.mover("stop") } }
+            }
+        }.disabled(!s.sshEnabled)
+        Card(title: "Cache clean-up (needs SSH)") {
+            HStack {
+                Text("Find files the mover left behind (already on the array) and empty folders on your cache pools, and remove the ones you choose.").foregroundStyle(.secondary)
+                Spacer()
+                Button("Clean up the cache…") { cleaning = true }.disabled(s.cachePools.isEmpty)
             }
         }.disabled(!s.sshEnabled)
         Card(title: "Power (needs SSH)") {
@@ -854,10 +929,12 @@ struct ControlsView: View {
             }
         }.disabled(!s.sshEnabled)
         if !s.sshEnabled { SSHNeeded() }
-        EmptyView()
-            .confirmationDialog(title, isPresented: Binding(get: { confirm != nil }, set: { if !$0 { confirm = nil } }), titleVisibility: .visible) {
-                Button(confirmLabel, role: .destructive) { perform() }
-            } message: { Text(message) }
+        }
+        // These must hang off a real view. On an EmptyView they silently never appear.
+        .sheet(isPresented: $cleaning) { CacheCleanupSheet() }
+        .confirmationDialog(title, isPresented: Binding(get: { confirm != nil }, set: { if !$0 { confirm = nil } }), titleVisibility: .visible) {
+            Button(confirmLabel, role: .destructive) { perform() }
+        } message: { Text(message) }
     }
 
     func run() {
@@ -870,7 +947,7 @@ struct ControlsView: View {
         switch confirm {
         case .stopArray: "Stop the array on \(s.profile.name)?"; case .parityCorrect: "Start a correcting parity check on \(s.profile.name)?"
         case .reboot: "Reboot \(s.profile.name)?"; case .shutdown: "Shut down \(s.profile.name)?"
-        case .spinDownAll: "Spin down all disks on \(s.profile.name)?"; case nil: ""
+        case .spinDownAll: "Spin down all disks on \(s.profile.name)?"; case .cancelOperation: "Cancel \(s.arrayOp?.title.lowercased() ?? "the operation") on \(s.profile.name)?"; case nil: ""
         }
     }
     var message: String {
@@ -880,11 +957,12 @@ struct ControlsView: View {
         case .reboot: "All services will go down briefly."
         case .shutdown: "The server will power off and can't be restarted from this app."
         case .spinDownAll: "Disks that are in use will spin up again on next access."
+        case .cancelOperation: "It stops now and has to start again from the beginning, losing the progress so far. A disk being rebuilt stays disabled until a rebuild completes."
         case nil: ""
         }
     }
     var confirmLabel: String {
-        switch confirm { case .stopArray: "Stop array"; case .parityCorrect: "Start"; case .reboot: "Reboot"; case .shutdown: "Shut down"; case .spinDownAll: "Spin down"; case nil: "OK" }
+        switch confirm { case .stopArray: "Stop array"; case .parityCorrect: "Start"; case .reboot: "Reboot"; case .shutdown: "Shut down"; case .spinDownAll: "Spin down"; case .cancelOperation: "Cancel it"; case nil: "OK" }
     }
     func perform() {
         guard let c = confirm else { return }
@@ -895,6 +973,7 @@ struct ControlsView: View {
             case .reboot: await s.power(reboot: true)
             case .shutdown: await s.power(reboot: false)
             case .spinDownAll: await s.spin(s.allDisks.compactMap(\.device), up: false)
+            case .cancelOperation: await s.parity("cancel")
             }
         }
     }

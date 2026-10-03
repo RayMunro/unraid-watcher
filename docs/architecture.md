@@ -25,6 +25,10 @@ Sources/UnraidWatcher/
   Actions.swift                  Actions (API and SSH), SMART models and parser
   LoginItem.swift                Launch at login and quiet start in the menu bar
   Deluge.swift                   Deluge Web UI client, models, and the Deluge panel
+  ArrayOperation.swift           Progress of a rebuild, parity build, or check, and the card that shows it
+  Spread.swift                   Share spread: per-disk measuring and the spread view
+  CacheCleanup.swift             Empty-folder scan and delete scripts, and the clean-up sheet
+  StrayFiles.swift               Finding cache files that are already on the array, and the verified delete
   ShareVM.swift                  Share management and VM detail views
   VMEditor.swift                 VM creation, XML generation, edit sheet
   VMExtras.swift                 VM clone planning, media, console
@@ -68,7 +72,7 @@ Each `Store` is the source of truth for one server. A `Task` loop calls `refresh
 ### Talking to the server
 
 - `UnraidClient` (in `Client.swift`) posts GraphQL documents with an `x-api-key` header. It tolerates self-signed certificates only when the setting is on. Responses decode through `Envelope<T>`, and numeric fields that Unraid sometimes returns as strings decode through the `Flex` and `LStr` types.
-- `Remote.exec` (in `Remote.swift`) runs `/usr/bin/ssh` as a subprocess and sends the script on standard input to `sh -s`. Standard error is drained on a separate thread to avoid pipe deadlocks. In key mode it uses batch mode. In password mode it uses a temporary `SSH_ASKPASS` helper that reads the password from an environment variable. `ServerAliveInterval` keeps long operations such as VM cloning connected.
+- `Remote.exec` (in `Remote.swift`) runs `/usr/bin/ssh` as a subprocess and sends the script on standard input to `sh -s`. Standard error is drained on a separate thread to avoid pipe deadlocks. A cancelled task stops its ssh process and returns to the caller at once, even though a shared connection keeps the command's output open, which is how the Stop buttons work. The command already running on the server finishes by itself, so long scans run at idle priority with a time limit. It shares one authenticated connection between commands (`ControlMaster=auto`, kept alive for two minutes, with the socket in a private `/tmp/uw-<uid>` folder), so there is one login rather than one per refresh. In key mode it uses batch mode. In password mode it uses a temporary `SSH_ASKPASS` helper that reads the password from an environment variable. `ServerAliveInterval` keeps long operations such as VM cloning connected.
 - Anything interpolated into a shell script goes through `shq()` (single-quote escaping), and names, paths, and device names are validated first (`validShareName`, `validPath`, `validDev`).
 
 ### Deluge
@@ -87,6 +91,12 @@ These are written as pure functions so they are easy to test in isolation:
 | `domainXML` | Generates a libvirt domain definition for a new VM |
 | `createScript` | Builds the shell script that creates a VM and cleans up on failure |
 | `planClone` | Computes the XML and file copies needed to clone a VM |
+| `cleanupScanScript`, `parseEmptyRoots` | Build the read-only empty-folder scan and parse its output |
+| `cleanupDeleteScript`, `validCleanupPath` | Build the delete step and check every path stays inside the pool |
+| `ArrayOperation.from` | Turns the array state values into an operation with a title, progress, and what it means for your data |
+| `strayScanScript`, `parseStrayScan` | Find cache files that also exist on an array disk, and whether they match |
+| `strayDeleteScript` | Re-verify each file against its array copy, byte for byte, and remove only those that still match |
+| `spreadLocationsScript`, `parseSpreadLocations` | Find where a share lives, skipping merged views and unassigned devices |
 | `DelugeParse.snapshot` | Turns a Deluge `web.update_ui` result into torrents and statistics |
 
 The project does not yet include an automated test target. During development these functions were checked with throwaway harnesses (sample inputs, `xmllint`, and stand-in `virsh` and `qemu-img` scripts). Turning them into XCTest cases is a good next step.

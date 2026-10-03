@@ -67,6 +67,12 @@ final class ServerManager: ObservableObject {
     }
 
     var selectedStore: Store? { selectedID.flatMap { stores[$0] } }
+    /// "37%" for the menu bar while a server is rebuilding or checking its array, nil otherwise. With several, the one furthest behind.
+    var operationPercent: String? {
+        let ops = servers.compactMap { stores[$0.id]?.arrayOp }
+        guard let slowest = ops.min(by: { $0.progress < $1.progress }) else { return nil }
+        return "\(Int(slowest.progress * 100))%"
+    }
     var allConnected: Bool { !servers.isEmpty && servers.allSatisfy { stores[$0.id]?.connected == true } }
 
     func select(_ id: UUID?) {
@@ -117,7 +123,8 @@ final class ServerManager: ObservableObject {
                       delugePassword: delugePassword ?? Keychain.get("delugePassword.\(p.id)"))
         stores[p.id] = s
         // re-render the menu bar icon and server picker when a server goes up or down
-        watchers[p.id] = s.$connected.removeDuplicates().sink { [weak self] _ in self?.objectWillChange.send() }
+        // also follow array operations, so the menu bar percentage keeps up as it changes
+        watchers[p.id] = Publishers.Merge(s.$connected.removeDuplicates().map { _ in () }, s.$arrayOp.map { _ in () }).sink { [weak self] _ in self?.objectWillChange.send() }
         s.showServerName = servers.count > 1
         s.start()
     }
@@ -254,6 +261,13 @@ struct ServerCard: View {
                     UsageBar(fraction: (kb.used?.value ?? 0) / t)
                     Text("\(bytes(kb.used?.value ?? 0)) used of \(bytes(t))").font(.caption).foregroundStyle(.secondary)
                 }
+                if let op = store.arrayOp {
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack { Text(op.title).font(.caption.weight(.semibold)); Spacer(); Text(String(format: "%.0f%%", op.progress * 100)).font(.caption.monospacedDigit()) }
+                        TorrentBar(fraction: op.progress, color: op.paused ? .orange : .blue, height: 6)
+                        if let left = store.opSecondsLeft { Text("about \(durationText(left)) left").font(.caption2).foregroundStyle(.secondary) }
+                    }
+                }
                 HStack(spacing: 14) {
                     stat("CPU", String(format: "%.0f%%", store.overview?.metrics?.cpu?.percentTotal ?? 0))
                     stat("RAM", String(format: "%.0f%%", store.overview?.metrics?.memory?.percentTotal ?? 0))
@@ -319,6 +333,7 @@ struct MenuBarRow: View {
             }
             if store.configured && store.connected {
                 Text("Array: \(store.array?.state ?? "-")").font(.callout)
+                if let op = store.arrayOp { Text("\(op.title): \(Int(op.progress * 100))%").font(.callout).foregroundStyle(.blue) }
                 Text(String(format: "CPU %.0f%%  ·  RAM %.0f%%", store.overview?.metrics?.cpu?.percentTotal ?? 0, store.overview?.metrics?.memory?.percentTotal ?? 0)).font(.callout)
                 Text("Docker: \(store.containers.filter(\.isRunning).count)/\(store.containers.count) running").font(.callout)
                 if let n = store.notificationCounts?.total, n > 0 { Text("\(n) unread notifications").font(.callout).foregroundStyle(.orange) }

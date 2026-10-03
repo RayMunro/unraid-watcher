@@ -24,7 +24,6 @@ struct ShareForm {
     }
 }
 struct ShareTarget: Identifiable { let id = UUID(); let name: String? }
-struct ShareDist: Identifiable { var id: String { disk }; let disk: String; let kb: Double }
 
 func validShareName(_ s: String) -> Bool { s.range(of: #"^[A-Za-z0-9][A-Za-z0-9 _.-]{0,60}$"#, options: .regularExpression) != nil }
 
@@ -54,21 +53,6 @@ extension Store {
             r[name] = parseCfg(parts.count > 1 ? String(parts[1]) : "")
         }
         shareCfgs = r
-    }
-
-    func analyzeShare(_ name: String) async {
-        let n = shq(name)
-        let script = "du -sk /mnt/*/\(n) 2>/dev/null"
-        guard let out = await ssh(script, allowFailure: true) else { return }
-        var rows: [ShareDist] = []
-        for line in out.split(separator: "\n") {
-            let p = line.split(separator: "\t", maxSplits: 1).map(String.init)
-            guard p.count == 2, let kb = Double(p[0]) else { continue }
-            let comps = p[1].split(separator: "/").map(String.init)   // ["mnt", "disk1", "Share"]
-            guard comps.count >= 3, !["user", "user0", "disks", "remotes", "addons", "rootshare"].contains(comps[1]) else { continue }
-            rows.append(ShareDist(disk: comps[1], kb: kb))
-        }
-        shareDist[name] = rows.sorted { $0.disk < $1.disk }
     }
 
     /// Posts a form to Unraid's own emhttp endpoint from the server itself (the way the web UI applies changes).
@@ -185,6 +169,7 @@ struct SharesView: View {
     @EnvironmentObject var s: Store
     @State private var editing: ShareTarget?
     @State private var deleteTarget: String?
+    @State private var spreadTarget: SpreadTarget?
 
     func cacheLabel(_ v: String?) -> String {
         switch v { case "no": "No (array only)"; case "yes": "Yes (cache, then mover)"; case "only": "Only (cache)"; case "prefer": "Prefer (array → cache)"; default: v ?? "-" }
@@ -200,9 +185,17 @@ struct SharesView: View {
             Spacer()
             Button("New share…") { editing = ShareTarget(name: nil) }.disabled(!s.sshEnabled)
         }
+        // Unraid reports the whole pool's used and free space for every share on it, so identical figures on several shares are not the share's own size.
+        let pools = Dictionary(grouping: s.shares) { "\(Int(($0.used?.value ?? 0) / 1_000_000))|\(Int(($0.free?.value ?? 0) / 1_000_000))" }
+        let sample = pools.values.filter { $0.count >= 3 }.max { $0.count < $1.count }?.first
+        if let sample {
+            Text("Most shares report the same array-wide figures (\(bytes(sample.used?.value ?? 0)) used, \(bytes(sample.free?.value ?? 0)) free), so a per-share bar would mislead. Open a share and choose Show spread across drives to see how much it really holds, and where.")
+                .font(.caption).foregroundStyle(.secondary)
+        }
         Card(title: "Shares (\(s.shares.count))") {
             ForEach(s.shares) { sh in
                 let name = sh.name ?? ""
+                let poolWide = (pools["\(Int((sh.used?.value ?? 0) / 1_000_000))|\(Int((sh.free?.value ?? 0) / 1_000_000))"]?.count ?? 0) >= 3
                 let cfg = s.shareCfgs[name]
                 DisclosureGroup {
                     VStack(alignment: .leading, spacing: 6) {
@@ -211,17 +204,8 @@ struct SharesView: View {
                             line("Min free space", c["shareFloor"].map { "\($0) KB" }); line("Included disks", c["shareInclude"]); line("Excluded disks", c["shareExclude"])
                             line("SMB export", (c["shareExport"] ?? "e") == "-" ? "Off" : "On"); line("SMB security", c["shareSecurity"])
                         } else if s.sshEnabled { Text("No custom settings file (defaults).").font(.caption).foregroundStyle(.secondary) }
-                        if let d = s.shareDist[name] {
-                            Text("Disk usage").font(.caption.bold()).padding(.top, 4)
-                            if d.isEmpty { Text("Not found on any disk").font(.caption).foregroundStyle(.secondary) }
-                            let total = d.map(\.kb).reduce(0, +)
-                            ForEach(d) { r in
-                                HStack { Text(r.disk).frame(width: 70, alignment: .leading); UsageBar(fraction: total > 0 ? r.kb / total : 0)
-                                    Text(bytes(r.kb)).font(.caption.monospacedDigit()).frame(width: 80, alignment: .trailing) }.font(.caption)
-                            }
-                        }
                         HStack {
-                            Button("Analyze disk usage") { Task { await s.analyzeShare(name) } }
+                            Button("Show spread across drives…") { spreadTarget = SpreadTarget(id: name) }
                             Button("Edit…") { editing = ShareTarget(name: name) }
                             Spacer()
                             Button("Delete…", role: .destructive) { deleteTarget = name }.disabled((sh.used?.value ?? 0) > 0)
@@ -231,9 +215,9 @@ struct SharesView: View {
                 } label: {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack { Text(name).font(.body.weight(.medium)); Spacer()
-                            Text("\(bytes(sh.used?.value ?? 0)) used · \(bytes(sh.free?.value ?? 0)) free").font(.caption).foregroundStyle(.secondary) }
+                            if !poolWide { Text("\(bytes(sh.used?.value ?? 0)) used · \(bytes(sh.free?.value ?? 0)) free").font(.caption).foregroundStyle(.secondary) } }
                         let total = (sh.used?.value ?? 0) + (sh.free?.value ?? 0)
-                        if total > 0 { UsageBar(fraction: (sh.used?.value ?? 0) / total) }
+                        if total > 0, !poolWide { UsageBar(fraction: (sh.used?.value ?? 0) / total) }
                         if let c = sh.comment, !c.isEmpty { Text(c).font(.caption).foregroundStyle(.secondary) }
                     }
                 }
@@ -242,6 +226,7 @@ struct SharesView: View {
         }
         .task { await s.loadShareConfigs() }
         .sheet(item: $editing) { ShareEditor(target: $0) }
+        .sheet(item: $spreadTarget) { ShareSpreadSheet(name: $0.id) }
         .confirmationDialog("Delete share \(deleteTarget ?? "")?", isPresented: Binding(get: { deleteTarget != nil }, set: { if !$0 { deleteTarget = nil } }), titleVisibility: .visible) {
             Button("Delete share", role: .destructive) { if let n = deleteTarget { Task { await s.deleteShare(n) } } }
         } message: { Text("Removes the share definition. It's refused if any disk still has files in it.") }

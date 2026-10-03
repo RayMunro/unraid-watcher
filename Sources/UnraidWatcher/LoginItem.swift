@@ -39,10 +39,18 @@ final class LoginItem: ObservableObject {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         let hide = UserDefaults.standard.object(forKey: "hideWindowOnLoginLaunch") as? Bool ?? true
-        guard hide, Self.launchedAsLoginItem else { return }
+        guard hide, Self.launchedAsLoginItem else {
+            // A normal launch. If something took focus during start-up (the Keychain prompt on the first run after
+            // an upgrade, for example), make sure the window still comes forward.
+            NSApp.activate(ignoringOtherApps: true)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                for w in NSApp.windows where w.identifier?.rawValue == "main" && !w.isVisible && !w.isMiniaturized { w.makeKeyAndOrderFront(nil) }
+            }
+            return
+        }
         // The window is created just after launch, so close it once it exists. The menu bar item keeps running.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-            NSApp.windows.filter { $0.title == "Unraid Watcher" }.forEach { $0.close() }
+            NSApp.windows.filter { $0.identifier?.rawValue.hasPrefix("main") == true }.forEach { $0.close() }
         }
     }
 

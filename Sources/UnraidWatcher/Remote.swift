@@ -4,8 +4,13 @@
 import Foundation
 
 struct NetCounters { let rx: Double; let tx: Double }
-struct TempSensor: Identifiable { var id: String { chip + label }; let chip: String; let label: String; let celsius: Double
-    var isCPU: Bool { ["coretemp", "k10temp", "zenpower", "cpu_thermal"].contains(chip) } }
+struct TempSensor: Identifiable {
+    var id: String { "\(source)|\(chip)|\(label)" }
+    let chip: String, label: String, celsius: Double
+    var source = ""     // the hwmon device, which tells apart two chips with the same name (two NVMe drives)
+    var group = ""      // chip name shown to the user, numbered when several devices share a name
+    var isCPU: Bool { ["coretemp", "k10temp", "zenpower", "cpu_thermal"].contains(chip) }
+}
 struct NetRate: Identifiable { var id: String { iface }; let iface: String; let rx: Double; let tx: Double }
 struct Fan: Identifiable { var id: String { name }; let name: String; let rpm: Double }
 struct Mount: Identifiable { var id: String { path }; let path: String; let device: String; let type: String; let size: Double; let used: Double }
@@ -25,6 +30,7 @@ struct RemoteSample {
     var disks: [String: DiskCounters] = [:] // sectors
     var procs: [Proc] = []
     var log: [String] = []
+    var md: [String: String] = [:]         // array state values (var.ini)
 }
 
 enum Remote {
@@ -36,7 +42,7 @@ enum Remote {
       for t in $h/temp*_input; do
         [ -f "$t" ] || continue
         l=$(cat "${t%_input}_label" 2>/dev/null)
-        echo "$n|$l|$(cat "$t" 2>/dev/null)"
+        echo "$n|$l|$(cat "$t" 2>/dev/null)|$(basename "$h")"
       done
     done
     echo ===FAN
@@ -48,69 +54,117 @@ enum Remote {
         echo "$n|$l|$(cat "$t" 2>/dev/null)"
       done
     done
+    echo ===MD; grep -E '^(mdState|mdResync|mdResyncPos|mdResyncSize|mdResyncAction|mdResyncDt|mdResyncDb|mdResyncCorr|sbSyncExit)=' /var/local/emhttp/var.ini 2>/dev/null
     echo ===LOAD; cat /proc/loadavg; cat /proc/uptime
     echo ===MEM; grep -E '^(MemTotal|MemFree|MemAvailable|Buffers|Cached|SwapTotal|SwapFree|Dirty|Shmem):' /proc/meminfo
     echo ===CPU; grep '^cpu' /proc/stat
     echo ===DF; df -PTk 2>/dev/null
     echo ===DISKIO; cat /proc/diskstats
     echo ===PS; ps -eo pid,pcpu,pmem,comm --sort=-pcpu 2>/dev/null | head -11
-    echo ===LOG; tail -n 60 /var/log/syslog 2>/dev/null
+    echo ===LOG; tail -n 250 /var/log/syslog 2>/dev/null
     """
+
+    /// Reuse one authenticated SSH connection for every command instead of logging in again each time.
+    /// That keeps the server's log free of a login per refresh and makes each refresh faster.
+    static func sharedConnectionArgs() -> [String] {
+        let dir = "/tmp/uw-\(getuid())"      // short, because a socket path is limited to about 100 characters
+        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        return ["-o", "ControlMaster=auto", "-o", "ControlPersist=120", "-o", "ControlPath=\(dir)/%C"]
+    }
 
     static func run(host: String, user: String, password: String) async throws -> RemoteSample {
         parse(try await exec(host: host, user: user, password: password, script: script))
     }
 
-    static func exec(host: String, user: String, password: String, script: String, allowFailure: Bool = false) async throws -> String {
-        try await Task.detached {
-            let p = Process()
-            p.executableURL = URL(fileURLWithPath: "/usr/bin/ssh")
-            var args = ["-o", "ServerAliveInterval=15", "-o", "ConnectTimeout=8", "-o", "StrictHostKeyChecking=accept-new"]
-            if password.isEmpty {
-                args += ["-o", "BatchMode=yes"]
-            } else {
-                // Feed the password to ssh via an askpass helper; it reads it from the environment, never from disk.
-                let helper = NSTemporaryDirectory() + "unraidmonitor-askpass.sh"
-                if !FileManager.default.fileExists(atPath: helper) {
-                    FileManager.default.createFile(atPath: helper, contents: Data("#!/bin/sh\nprintf '%s\\n' \"$UNRAID_SSH_PW\"\n".utf8),
-                                                   attributes: [.posixPermissions: 0o700])
+    /// Lets a cancelled task stop the ssh process it started, and return at once.
+    /// With a shared connection the long-lived master process holds the command's output pipe, so killing the client alone does not
+    /// end the read. The caller is released immediately and the reading thread finishes by itself when the command ends.
+    private final class CallBox: @unchecked Sendable {
+        private let lock = NSLock()
+        private var process: Process?
+        private var continuation: CheckedContinuation<String, Error>?
+        private var cancelled = false
+        private var done = false
+
+        func begin(_ c: CheckedContinuation<String, Error>) {
+            lock.lock()
+            if cancelled { done = true; lock.unlock(); c.resume(throwing: CancellationError()); return }
+            continuation = c; lock.unlock()
+        }
+        func set(_ p: Process) { lock.lock(); process = p; let c = cancelled; lock.unlock(); if c { p.terminate() } }
+        func finish(_ r: Result<String, Error>) {
+            lock.lock(); let c = continuation; let already = done; done = true; continuation = nil; lock.unlock()
+            if !already, let c { c.resume(with: r) }
+        }
+        func cancel() {
+            lock.lock(); cancelled = true; let p = process; let c = continuation; let already = done; done = true; continuation = nil; lock.unlock()
+            p?.terminate()
+            if !already, let c { c.resume(throwing: CancellationError()) }
+        }
+    }
+
+    static func exec(host: String, user: String, password: String, script: String, allowFailure: Bool = false, extraArgs: [String] = []) async throws -> String {
+        let box = CallBox()
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (c: CheckedContinuation<String, Error>) in
+                box.begin(c)
+                DispatchQueue.global(qos: .userInitiated).async {
+                    do { box.finish(.success(try runSSH(host: host, user: user, password: password, script: script, allowFailure: allowFailure, extraArgs: extraArgs, box: box))) }
+                    catch { box.finish(.failure(error)) }
                 }
-                var env = ProcessInfo.processInfo.environment
-                env["SSH_ASKPASS"] = helper; env["SSH_ASKPASS_REQUIRE"] = "force"; env["DISPLAY"] = env["DISPLAY"] ?? ":0"
-                env["UNRAID_SSH_PW"] = password
-                p.environment = env
-                args += ["-o", "BatchMode=no", "-o", "NumberOfPasswordPrompts=1",
-                         "-o", "PreferredAuthentications=publickey,password,keyboard-interactive"]
             }
-            p.arguments = args + ["\(user)@\(host)", "sh -s"]
-            let i = Pipe(), o = Pipe(), e = Pipe()
-            p.standardInput = i; p.standardOutput = o; p.standardError = e
-            try p.run()
-            i.fileHandleForWriting.write(Data(script.utf8)); try? i.fileHandleForWriting.close()
-            // drain stderr concurrently so a chatty command can't deadlock on a full pipe
-            var errData = Data()
-            let t = Thread { errData = e.fileHandleForReading.readDataToEndOfFile() }
-            t.start()
-            let data = o.fileHandleForReading.readDataToEndOfFile()
-            p.waitUntilExit()
-            while !t.isFinished { usleep(1000) }
-            let out = String(data: data, encoding: .utf8) ?? ""
-            if p.terminationStatus != 0 && !(allowFailure && p.terminationStatus != 255) {
-                let msg = String(data: errData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                throw UnraidError.graphql(msg.isEmpty ? "ssh exited with \(p.terminationStatus)" : msg)
+        } onCancel: { box.cancel() }
+    }
+
+    private static func runSSH(host: String, user: String, password: String, script: String, allowFailure: Bool, extraArgs: [String], box: CallBox) throws -> String {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/bin/ssh")
+        var args = ["-o", "ServerAliveInterval=15", "-o", "ConnectTimeout=8", "-o", "StrictHostKeyChecking=accept-new"] + extraArgs + sharedConnectionArgs()
+        if password.isEmpty {
+            args += ["-o", "BatchMode=yes"]
+        } else {
+            // Feed the password to ssh via an askpass helper; it reads it from the environment, never from disk.
+            let helper = NSTemporaryDirectory() + "unraidmonitor-askpass.sh"
+            if !FileManager.default.fileExists(atPath: helper) {
+                FileManager.default.createFile(atPath: helper, contents: Data("#!/bin/sh\nprintf '%s\\n' \"$UNRAID_SSH_PW\"\n".utf8),
+                                               attributes: [.posixPermissions: 0o700])
             }
-            return out
-        }.value
+            var env = ProcessInfo.processInfo.environment
+            env["SSH_ASKPASS"] = helper; env["SSH_ASKPASS_REQUIRE"] = "force"; env["DISPLAY"] = env["DISPLAY"] ?? ":0"
+            env["UNRAID_SSH_PW"] = password
+            p.environment = env
+            args += ["-o", "BatchMode=no", "-o", "NumberOfPasswordPrompts=1",
+                     "-o", "PreferredAuthentications=publickey,password,keyboard-interactive"]
+        }
+        p.arguments = args + ["\(user)@\(host)", "sh -s"]
+        let i = Pipe(), o = Pipe(), e = Pipe()
+        p.standardInput = i; p.standardOutput = o; p.standardError = e
+        try p.run()
+        box.set(p)
+        i.fileHandleForWriting.write(Data(script.utf8)); try? i.fileHandleForWriting.close()
+        // drain stderr concurrently so a chatty command can't deadlock on a full pipe
+        var errData = Data()
+        let t = Thread { errData = e.fileHandleForReading.readDataToEndOfFile() }
+        t.start()
+        let data = o.fileHandleForReading.readDataToEndOfFile()
+        p.waitUntilExit()
+        while !t.isFinished { usleep(1000) }
+        let out = String(data: data, encoding: .utf8) ?? ""
+        if p.terminationStatus != 0 && !(allowFailure && p.terminationStatus != 255) {
+            let msg = String(data: errData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            throw UnraidError.graphql(msg.isEmpty ? "ssh exited with \(p.terminationStatus)" : msg)
+        }
+        return out
     }
 
     static func parse(_ text: String) -> RemoteSample {
         var r = RemoteSample()
         var mode = ""
         var loadLines = 0
-        func sensor(_ l: String) -> (String, String, Double)? {
+        func sensor(_ l: String) -> (String, String, Double, String)? {
             let p = l.split(separator: "|", omittingEmptySubsequences: false).map(String.init)
-            guard p.count == 3, let v = Double(p[2].trimmingCharacters(in: .whitespaces)) else { return nil }
-            return (p[0], p[1].isEmpty ? "sensor" : p[1], v)
+            guard p.count >= 3, let v = Double(p[2].trimmingCharacters(in: .whitespaces)) else { return nil }
+            return (p[0], p[1].isEmpty ? "sensor" : p[1], v, p.count > 3 ? p[3] : "")
         }
         for line in text.split(separator: "\n", omittingEmptySubsequences: true) {
             let l = String(line)
@@ -125,9 +179,14 @@ enum Remote {
                     if n.count >= 9, !skip { r.net[iface] = NetCounters(rx: n[0], tx: n[8]) }
                 }
             case "===TEMP":
-                if let (c, lb, v) = sensor(l), v > 0, v < 150_000 { r.temps.append(TempSensor(chip: c, label: lb, celsius: v / 1000)) }
+                if let (c, lb, v, src) = sensor(l), v > 0, v < 150_000 { r.temps.append(TempSensor(chip: c, label: lb, celsius: v / 1000, source: src)) }
             case "===FAN":
-                if let (c, lb, v) = sensor(l) { r.fans.append(Fan(name: "\(c) \(lb)", rpm: v)) }
+                if let (c, lb, v, _) = sensor(l) { r.fans.append(Fan(name: "\(c) \(lb)", rpm: v)) }
+            case "===MD":
+                if let eq = l.firstIndex(of: "=") {
+                    let v = String(l[l.index(after: eq)...]).trimmingCharacters(in: .whitespaces)
+                    r.md[String(l[..<eq])] = v.hasPrefix("\"") && v.hasSuffix("\"") && v.count >= 2 ? String(v.dropFirst().dropLast()) : v
+                }
             case "===LOAD":
                 if loadLines == 0 { r.load = f.prefix(3).compactMap { Double($0) } }
                 else if let u = f.first.flatMap(Double.init) { r.uptime = u }
@@ -155,10 +214,27 @@ enum Remote {
             default: break
             }
         }
+        // Number chips that exist on several devices, and put sensors in a stable natural order (Package first, then Core 0, 1, 2 ... 10).
+        let sources = Dictionary(grouping: r.temps, by: \.chip).mapValues { Array(Set($0.map(\.source))).sorted { $0.localizedStandardCompare($1) == .orderedAscending } }
+        r.temps = r.temps.map { t in
+            var t = t
+            let s = sources[t.chip] ?? []
+            t.group = s.count > 1 ? "\(t.chip) \((s.firstIndex(of: t.source) ?? 0) + 1)" : t.chip
+            return t
+        }
+        func rank(_ label: String) -> Int { label.hasPrefix("Package") || label.hasPrefix("Tctl") ? 0 : 1 }
+        r.temps.sort { a, b in
+            if a.group != b.group { return a.group.localizedStandardCompare(b.group) == .orderedAscending }
+            if rank(a.label) != rank(b.label) { return rank(a.label) < rank(b.label) }
+            return a.label.localizedStandardCompare(b.label) == .orderedAscending
+        }
         return r
     }
 }
 
 func rate(_ bytesPerSec: Double) -> String {
-    ByteCountFormatter.string(fromByteCount: Int64(bytesPerSec), countStyle: .decimal) + "/s"
+    let f = ByteCountFormatter()
+    f.countStyle = .decimal
+    f.allowsNonnumericFormatting = false      // "0 KB/s" instead of "Zero KB/s"
+    return f.string(fromByteCount: Int64(bytesPerSec)) + "/s"
 }

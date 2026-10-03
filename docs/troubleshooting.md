@@ -56,6 +56,9 @@ Actions that go through the API (container start and stop, VM power, array, pari
 
 ## SSH problems
 
+- **The server's log is full of SSH logins:** older versions logged in again on every refresh. Current versions reuse one connection. The Logs tab also hides these lines by default.
+- **A refresh pauses for a moment after the server restarts or you change its SSH password:** the shared connection has to be made again. It recovers by itself.
+
 The SSH error message is shown exactly as `ssh` reported it.
 
 | Message | Fix |
@@ -96,6 +99,29 @@ If nothing appears:
 - **"No Deluge daemon to connect to":** the Web UI is running but is not linked to a daemon. Open the Deluge Web UI once in a browser and use its Connection Manager to add the daemon.
 - **Pause, resume, or remove fails:** the banner shows Deluge's own message. Copy it with the button on the banner.
 
+## Array operation progress
+
+- **There is no progress card during a rebuild:** the app reads it over SSH, or from the Unraid API when SSH is off. Older API versions may not offer it, so turn on SSH.
+- **"working out the time left":** the estimate needs about 20 seconds of readings. Until then the speed Unraid reports is used.
+- **The time left changes a lot:** rebuilds slow down when the array is busy, and the estimate follows the real speed. A rebuild of a large disk takes days.
+- **Pause or Cancel did nothing, or showed an error:** those buttons use the Unraid API's parity controls, which are made for parity checks. If your version does not apply them to a rebuild, use the Unraid web interface.
+
+## Share spread and cache clean-up
+
+- **Measuring a share is slow the first time and fast the second:** the server keeps recently read folder listings in memory, so a repeat measurement is nearly instant.
+- **Measuring a share is slow:** it reads every file name on each disk that holds the share. Large shares on spinning disks can take minutes. Use **Stop** to cancel, and the disks measured so far stay on screen.
+- **The disks woke up:** measuring has to read the disks. Do it when that does not matter.
+- **The clean-up scan takes a long time:** it walks every folder on the pools. Keep your big folders (such as `appdata`) in the skip list so they are never entered. The scan runs at low priority and gives up after 25 minutes.
+- **A folder I expected is not listed:** it is hidden by the age setting, the skip list, or the top-level switch, or it holds a file or a link somewhere inside. The summary says how many were hidden by your settings.
+- **"No cache file has an identical copy on the array":** nothing on the cache, outside the skipped folders, is also on the array. That is the normal, healthy state after the mover has run.
+- **Deleting files is switched off, and the sheet says the mover is running:** wait for the mover to finish, then scan again. Deleting while it runs could race with it.
+- **Files appear under "differ from the array copy":** the same path exists on the cache and on the array with different contents. They are never offered for deletion. Compare them yourself and decide which to keep.
+- **A file was kept when I deleted:** the sheet's message gives the reason: it changed since the scan, its array copy is missing or different, or it no longer exists. Scan again.
+- **The comparison ran out of time:** the file check stops after 15 minutes and keeps what it found. Use the quick comparison, or add folders to the skip list.
+- **This check needs the array to be started:** the array disks must be mounted to compare against them.
+- **The pool I want is not offered:** pools come from the server's mounted filesystems. The pool must be mounted, which means the array is started.
+- **"The scan didn't finish":** the server stopped answering part-way. Try again, with more folders in the skip list.
+
 ## Launch at login
 
 - **The switch turns itself off or an error appears:** move the app to your **Applications** folder, open it from there, and try again.
@@ -112,6 +138,8 @@ If nothing appears:
 | SMART shows "Standby" | The disk is spun down and was deliberately not woken. Its last data is kept when available. |
 | Temperatures missing | SSH is off, or the server exposes no sensors the app recognizes. |
 | Share settings missing | SSH is off, or the share uses defaults and has no settings file. |
+| Most shares show no usage bar | They report the same pool-wide figures. Use **Show spread across drives** on a share for its real size. |
+| Torrents show "Size not known yet" | Deluge has not downloaded their metadata yet, so it does not know their size. |
 
 ## VM problems
 

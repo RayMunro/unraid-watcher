@@ -59,7 +59,10 @@ struct UnraidWatcherApp: App {
         MenuBarExtra {
             MenuBarView().environmentObject(manager)
         } label: {
-            Image(systemName: manager.allConnected ? "externaldrive.connected.to.line.below" : "externaldrive.badge.xmark")
+            HStack(spacing: 3) {
+                Image(systemName: manager.allConnected ? "externaldrive.connected.to.line.below" : "externaldrive.badge.xmark")
+                if let p = manager.operationPercent { Text(p).monospacedDigit() }
+            }
         }
         .menuBarExtraStyle(.window)
     }

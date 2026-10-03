@@ -79,9 +79,13 @@ final class Store: ObservableObject {
     private var lastDisks: (time: Date, c: [String: DiskCounters])?
     private var diskAlertLevel: [String: Int] = [:]
     private var cpuAlerted = false
+    private var diskStatusAlerted: Set<String> = []
     private var seenNotifs: Set<String>?
     @Published var shareCfgs: [String: [String: String]] = [:]
-    @Published var shareDist: [String: [ShareDist]] = [:]
+    @Published var arrayOp: ArrayOperation?
+    @Published var opSpeedKBps: Double?
+    @Published var opSecondsLeft: Double?
+    var opSamples: [(t: Date, pos: Double)] = []
     @Published var banner: Banner?
     @Published var smart: [String: SmartInfo] = [:]
     @Published var smartLoading = false
@@ -198,6 +202,15 @@ final class Store: ObservableObject {
         } else if let r = unwrap("UPS", e4) { upsDevices = r }
         if let r = unwrap("Parity history", e5) { parityHistory = r }
         await refreshRemote(into: &errs)
+        if !sshEnabled {
+            // Without SSH, ask the API for the same array state values. An older API may not offer them, which is not an error worth showing.
+            let r = await attempt { try await c.query("{ vars { mdResync mdResyncPos mdResyncSize mdResyncAction mdResyncDt mdResyncDb mdResyncCorr } }", as: OpVarsWrap.self).vars }
+            if case .success(let v) = r {
+                let kv = ["mdResync": v.mdResync?.s, "mdResyncPos": v.mdResyncPos?.s, "mdResyncSize": v.mdResyncSize?.s, "mdResyncAction": v.mdResyncAction?.s,
+                          "mdResyncDt": v.mdResyncDt?.s, "mdResyncDb": v.mdResyncDb?.s, "mdResyncCorr": v.mdResyncCorr?.s].compactMapValues { $0 }
+                updateArrayOperation(ArrayOperation.from(kv), exit: nil)
+            }
+        }
         errors = errs; connected = ok
         checkAlerts()
         if sshEnabled, !smartLoading, lastSmart.map({ Date().timeIntervalSince($0) > 1800 }) ?? true { Task { await loadSMART() } }
@@ -209,6 +222,7 @@ final class Store: ObservableObject {
         do {
             let r = try await Remote.run(host: host, user: sshUser, password: sshPassword)
             let now = Date()
+            updateArrayOperation(ArrayOperation.from(r.md), exit: r.md["sbSyncExit"])
             temps = r.temps; fans = r.fans; load = r.load; uptimeSeconds = r.uptime; mem = r.mem
             mounts = r.mounts.sorted { $0.path < $1.path }; procs = r.procs; logLines = r.log
             if let cpu = r.temps.filter(\.isCPU).map(\.celsius).max() { tempHistory = Array((tempHistory + [cpu]).suffix(60)) }
@@ -282,6 +296,16 @@ final class Store: ObservableObject {
                 if t < Double(limit - 3) { diskAlertLevel[name] = level }
             }
         }
+        // A disk Unraid has disabled or marked invalid is the most important thing to hear about.
+        for d in allDisks {
+            guard let name = d.name, let status = d.status?.uppercased() else { continue }
+            if status == "DISK_INVALID" || status == "DISK_DSBL" {
+                if diskStatusAlerted.insert(name).inserted {
+                    sendNotification("⛔️ Disk \(name) is \(status.replacingOccurrences(of: "DISK_", with: "").lowercased())",
+                                     "Unraid reports a problem with this disk. Check the array.", id: "diskstatus-\(name)")
+                }
+            } else { diskStatusAlerted.remove(name) }
+        }
         if let t = temps.filter(\.isCPU).map(\.celsius).max() {
             if t >= Double(cpuWarnTemp), !cpuAlerted {
                 cpuAlerted = true
@@ -319,6 +343,10 @@ final class Store: ObservableObject {
     struct UPSWrap: Decodable { let upsDevices: [UPS] }
     struct ParityWrap: Decodable { let parityHistory: [ParityCheck] }
     struct ParityStatusWrap: Decodable { struct A: Decodable { let parityCheckStatus: ParityStatus? }; let array: A }
+    struct OpVarsWrap: Decodable {
+        struct V: Decodable { let mdResync, mdResyncPos, mdResyncSize, mdResyncAction, mdResyncDt, mdResyncDb, mdResyncCorr: LStr? }
+        let vars: V
+    }
     struct RegWrap: Decodable { let registration: Registration? }
     struct ServicesWrap: Decodable { let services: [Service] }
     struct FlashWrap: Decodable { let flash: Flash? }
@@ -330,8 +358,12 @@ final class Store: ObservableObject {
     }
 }
 
+/// Formats a size. `kb` is in kilobytes unless `unitKB` is false, in which case it is bytes.
 func bytes(_ kb: Double, unitKB: Bool = true) -> String {
-    ByteCountFormatter.string(fromByteCount: Int64(unitKB ? kb * 1024 : kb), countStyle: .decimal)
+    let f = ByteCountFormatter()
+    f.countStyle = .decimal
+    f.allowsNonnumericFormatting = false      // "0 KB" instead of "Zero KB"
+    return f.string(fromByteCount: Int64(unitKB ? kb * 1024 : kb))
 }
 
 

@@ -23,6 +23,8 @@ Features marked **SSH** need SSH turned on in Settings. Features marked **Admin*
 
 A summary of the whole server:
 
+- **Array operation:** appears only while the array is rebuilding a disk, building parity, running a parity check, or clearing a new disk. It shows what is running, a progress bar with the percentage on it, how much has been done out of the total, the speed, and about how long is left. Rebuilds and parity builds add a note on what they mean for your data, for example that a disk is being emulated from parity and the array cannot survive another disk failure. The percentage also appears beside Overview in the sidebar and, in the menu bar, next to the app's icon, and each server's card in the all-servers overview and the menu bar panel shows its own bar. When the operation ends you get a notification saying whether it finished, was cancelled, or ended with an error.
+- **Array problems:** appears only when Unraid reports a disk as disabled or invalid, shown in red. Such a disk is being emulated from parity, so check the array in the Unraid web interface.
 - **Temperature alerts:** appears only when a disk is at or above your warning temperature.
 - **System:** hostname, Unraid version, CPU model, core and thread counts, and boot time.
 - **CPU and Memory:** current load with a graph of the last 60 refreshes. With SSH on, the CPU card also shows the CPU temperature.
@@ -75,9 +77,18 @@ Disks that are spun down are never woken for a SMART check. Their last known dat
 
 ## Controls (SSH and Admin, depending on the action)
 
-- **Array:** shows the state with **Start array** and **Stop array**. During a parity check it shows progress, errors, and **Pause**, **Resume**, and **Cancel**. When idle you can start a read-only check or a correcting check.
+- **Array:** shows the state with **Start array** and **Stop array**. During any array operation it shows progress with **Pause**, **Resume**, and **Cancel** (which asks first, because progress is lost). When idle you can start a read-only check or a correcting check.
 - **Disks and mover (SSH):** spin all disks up or down, and start or stop the mover.
 - **Power (SSH):** **Reboot** and **Shut down**. Both ask for confirmation and use Unraid's clean powerdown, which stops the array first. A shut-down server cannot be turned back on from the app.
+- **Cache clean-up (SSH):** checks your cache pools for two kinds of leftovers and lets you remove them. Press **Clean up the cache…**, pick the pools, then **Scan the cache**. The scan only reads. Results appear in two sections, each with checkboxes and its own delete button.
+  - **Files left behind by the mover.** These are files on a cache pool that also exist, at the same path, on an array disk. They are what an interrupted or blocked mover leaves behind. Each is listed with the array disk that holds the copy, its size, and how its share uses the cache. Files in shares that use the mover are ticked for you. Files in other shares are listed but not ticked.
+  - **Empty folders.** Folder trees with no files, and no links, anywhere inside them. After you delete files above, scan again: the folders they leave empty show up here.
+  - **Never touch these top-level folders** (default `appdata,system,domains`) are not even entered during the scan, which also makes it much faster.
+  - **Leave files changed in the last N minutes alone** (default 60) protects files that are still being written.
+  - **Decide a file is the same as its array copy by** is either *Size and date* (quick, and what the mover preserves) or *Every byte* (slow and thorough, it reads both copies). Either way, each file is compared byte for byte with its array copy again, just before it is deleted.
+  - **Only trees unchanged for N days or more** (default 7) and **Also remove empty top-level folders** (off by default) apply to empty folders.
+  - A file whose array copy differs is listed under "differ from the array copy" and is never offered for deletion.
+  - Deleting files is switched off while the mover is running.
 - **Console (SSH):** run any command on the server and see its output. Recent commands are kept as shortcuts.
 
 ## Array & Disks
@@ -172,10 +183,12 @@ The panel refreshes every few seconds, but only while it is open, so it adds no 
 A list of shares with used and free space. Click a share to expand it.
 
 - **Settings (SSH):** cache use, allocation method, split level, minimum free space, included and excluded disks, and SMB export and security.
-- **Analyze disk usage:** a per-disk breakdown of where the share's data lives. Runs on demand because it can be slow on large shares.
+- **Show spread across drives:** opens a view of how that share is spread over your disks and pools. It measures one disk at a time so you can watch progress and stop it, then shows a stacked bar and a table with each disk's size and its percentage of the share, a summary such as "1.2 TB across 4 array disks and 1 pool", and the disks the share is not on. **Scan again** repeats it and **Copy** puts the table on the clipboard. Measuring reads the folder listing on every disk that holds the share, so it can wake spun-down disks and takes a while for a large share the first time (the server remembers listings, so a repeat is much faster). **Stop** ends the measurement at once. The measurement already running on the server for the current disk finishes by itself at idle priority, and is limited to 10 minutes.
 - **New share:** a form for name, comment, cache use, allocation, split level, minimum free space, disk include and exclude lists, and SMB export and security.
 - **Edit:** the same form for an existing share. Settings that the form does not cover are preserved.
 - **Delete:** only for empty shares. The app checks every disk first and refuses if any files remain.
+
+Unraid reports the whole pool's used and free space for every share on it, so many shares show identical figures. When three or more shares report the same numbers, the list leaves out the per-share bar and says so, because those figures are not the share's own size. Expand a share and use **Show spread across drives** to see how much it really holds, and where.
 
 Share changes are submitted to Unraid's own web interface endpoint from the server itself, the same way the web interface saves them. If the server does not accept a change, a banner says so.
 
@@ -185,7 +198,9 @@ Unread Unraid notifications with their importance, message, and time. Archive on
 
 ## Logs (SSH)
 
-The last 60 lines of the system log, with errors in red and warnings in orange. The text can be selected and copied.
+The last 250 lines of the system log, with errors in red and warnings in orange. The text can be selected and copied.
+
+The log also records every SSH login, including the app's own connections. **Hide SSH login lines** (on by default) removes those so the useful messages are visible. Turn it off to see everything.
 
 ## Menu bar
 

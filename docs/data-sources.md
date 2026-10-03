@@ -27,6 +27,7 @@ All requests go to `<server>/graphql` over HTTP or HTTPS with the API key in the
 | License | `registration` (type, state, expiration) |
 | Services | `services` (name, online, version) |
 | Flash | `flash` (vendor, product) |
+| Array operation (without SSH) | `vars` (the `mdResync` values: action, position, size, speed window, correcting) |
 | Server | `vars` (name, version, registration, time zone, disk and share counts, array filesystem state, safe mode) |
 
 Each query runs independently and concurrently on every refresh, so a failure in one does not affect the others.
@@ -45,19 +46,22 @@ Each query runs independently and concurrently on every refresh, so a failure in
 
 Commands run as the SSH user through `sh -s`, with the script sent on standard input.
 
+The app keeps one SSH connection open and reuses it for every command (OpenSSH connection sharing). It logs in once, rather than once per refresh, so the server's log is not filled with a login for every refresh and each refresh is faster. The connection closes by itself two minutes after its last use. Its control socket lives in a private folder, `/tmp/uw-<your user id>`, and nothing else is shared.
+
 ### Polled on every refresh (when SSH is on)
 
 A single connection reads, in one batch:
 
 - `/proc/net/dev` for network counters
 - `/sys/class/hwmon` for temperatures and fan speeds
+- the array state in `/var/local/emhttp/var.ini` (the `mdResync` values that describe a rebuild, parity build, or check)
 - `/proc/loadavg` and `/proc/uptime`
 - `/proc/meminfo` for memory detail
 - `/proc/stat` for per-core CPU
 - `df` for mounted filesystems
 - `/proc/diskstats` for disk I/O
 - `ps` for the top processes
-- the last 60 lines of `/var/log/syslog`
+- the last 250 lines of `/var/log/syslog`
 
 ### On demand
 
@@ -74,6 +78,11 @@ A single connection reads, in one batch:
 | Share settings | reading `/boot/config/shares/*.cfg` |
 | Share disk usage | `du -sk /mnt/*/<share>` |
 | Share create, edit, delete | a request to Unraid's own web interface endpoint on the server (`/update.htm`, over its local socket when available), authenticated with the server's own token |
+| Share spread | A listing of `/mnt/*/<share>` to find where the share lives, then `du -sk` on each location, one at a time, at idle priority (`nice`, `ionice`) with a 10 minute `timeout` when those exist |
+| Cache clean-up scan | `find`, `sort`, `awk`, `comm` and `stat` over the pool, read-only, at low priority (`nice`, `ionice`) and with a `timeout` when those exist |
+| Cache clean-up: files already on the array, scan | `find` over the pool (skipping your skipped folders), then for each file a check of `/mnt/disk*` for the same path, comparing size and date (`stat`) or every byte (`cmp`). Read-only, at idle priority with a 15 minute limit |
+| Cache clean-up: files already on the array, delete | For each file: `stat` and `cmp` against the copy on an array disk, then `rm -f` of that single file only if they match. Refuses if the mover (`pgrep`) is running |
+| Cache clean-up delete | `find <folder> -depth -type d -empty -delete`, so only folders that are empty at that moment are removed |
 | Share delete safety check | `find` over the share's folders on each disk |
 | VM details | `virsh dominfo`, `domblklist`, `domiflist`, `vncdisplay`, and the libvirt VM log |
 | VM autostart | `virsh autostart` |

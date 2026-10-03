@@ -19,6 +19,14 @@ To avoid repeated alerts, a disk must cool to **3 degrees below** the limit befo
 
 The Overview tab also shows a Temperature alerts card for any disk at or above the warning limit, and disk temperatures are colored orange or red on the Array & Disks tab.
 
+### Array operations finishing
+
+When a rebuild, parity build, parity check, or disk clear stops being reported, you get one notification: finished, cancelled, or ended with an error. Finishing is judged from the exit code Unraid records for the last operation, which needs SSH. Without SSH the notification still arrives but cannot tell success from failure, so it says only that the operation finished.
+
+### Disabled or invalid disks
+
+If Unraid reports a disk as disabled or invalid, you get one notification naming the disk, and an **Array problems** card appears on the Overview tab. This is the most serious disk alert, because the disk's data is being emulated from parity. You are not notified again for the same disk until it has returned to normal.
+
 ### CPU temperature (needs SSH)
 
 When the hottest CPU sensor reaches the CPU limit (default 80 C), you get one notification. It re-arms after the temperature drops 3 degrees below the limit.

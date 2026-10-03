@@ -33,11 +33,33 @@ Each server has its own key and its own SSH setting, so you can give a server yo
 | Extended SMART self-test | Can take hours and slows the disk |
 | Delete a share | Removes the share definition |
 | Remove a VM | Removes the definition only, disks are kept |
+| Delete cache files that are copies of array files | Shows the list first, then confirms. Each file is re-checked byte for byte against its array copy just before it is deleted |
+| Delete empty cache folders | Shows the list first, then confirms. Only folders with nothing inside are removed |
 | Remove a torrent in Deluge | Choose to keep the files, or delete them too (cannot be undone) |
 
 Actions that are easy to undo, such as starting a container, pausing a VM, or a short SMART test, run immediately.
 
 ## Built-in safeguards
+
+**Cache clean-up: files**
+
+- A cache file is only ever deleted when an identical copy exists on an array disk. "On the array" means a real array disk (`/mnt/disk1`, `/mnt/disk2`, and so on), never another pool.
+- The scan can decide by size and date, or by comparing every byte. Whichever you choose, the delete step compares the two files byte for byte again, right before deleting each one. A file is kept, and reported, if it no longer exists, has changed since the scan, has no copy on an array disk, or differs from that copy.
+- Files whose array copy differs are listed for your information and are never offered for deletion.
+- Files changed in the last hour (adjustable), symbolic links, files in the skipped top-level folders, and files directly in the pool root are never examined.
+- Only regular files are removed, never folders, and the array copy is never touched.
+- Deleting is refused while the mover is running, and the scan says so.
+- Files in shares that use the mover are ticked by default. Files in shares that prefer the cache, use it exclusively, or do not use it are listed but not ticked, because for those shares the cache copy is meant to be there.
+
+**Cache clean-up: folders**
+
+- The scan only reads. Nothing is deleted until you tick folders and confirm.
+- Only folders with no files and no links anywhere inside are ever listed, and each is checked again at the moment it is deleted: the delete step removes a folder only if it is empty right then, deepest first. A folder that gained a file since the scan is left alone, along with its parents.
+- The pool itself, and anything outside it, can never be named: paths must sit inside the pool and may not contain `..`.
+- `appdata`, `system` and `domains` are skipped by default and never entered. Recently changed folders are skipped by default.
+- Empty top-level folders (the folder for a share) are left alone unless you switch that on.
+
+**Everything else**
 
 - **Shares:** delete works only on empty shares. The app checks every disk and refuses if any file remains.
 - **VMs:** removing a VM never deletes its disk images. Cloning requires the source VM to be shut off. Editing a VM definition is validated by libvirt, and a bad definition is rejected without changing the VM.
@@ -62,6 +84,8 @@ The Console on the Controls tab runs exactly what you type, as the SSH user, wit
 | Force stop a VM | Risky, the guest may be left inconsistent |
 | Delete an empty share | Re-create it |
 | Remove a VM definition | Re-create it against the same disk |
+| Delete a cache file that is identical on the array | Yes, in the sense that nothing is lost: the identical copy stays on the array |
+| Delete an empty cache folder | Yes, it is empty, so the system recreates it when something needs it |
 | Remove a torrent (keep files) | Re-add the torrent or magnet link |
 | Remove a torrent and delete files | No, the files are gone |
 | Shut down the server | Needs physical or out-of-band power on |
