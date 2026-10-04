@@ -99,6 +99,19 @@ If nothing appears:
 - **"No Deluge daemon to connect to":** the Web UI is running but is not linked to a daemon. Open the Deluge Web UI once in a browser and use its Connection Manager to add the daemon.
 - **Pause, resume, or remove fails:** the banner shows Deluge's own message. Copy it with the button on the banner.
 
+## CPU core types, NPU, and GPU
+
+- **The core bars say "CPU 0", "CPU 1" instead of core types:** the server's core layout could not be read, which usually means SSH was off or briefly unavailable the first time. Reopen the Performance tab after fixing SSH, or restart the app.
+- **All the small cores are called "E-core" and none are "LP E-core":** the server did not report clock speeds for them, so the two kinds cannot be told apart. The app does not guess.
+- **My CPU is not hybrid but shows groups:** it should show a single list. If it does not, tell me the CPU model so the detection can be improved.
+- **There is no NPU card:** the card appears only when an NPU with a driver is found. If the NPU exists but is not usable, a card says that. Linux needs its `intel_vpu` driver for Intel NPUs, and the kernel in your Unraid version has to include it.
+- **The NPU card says it does not report how busy the NPU is:** the driver is loaded but older than the one that provides a busy counter.
+- **The NPU or GPU shows "measuring…":** the percentage needs two readings a few seconds apart. It appears after the next refresh.
+- **There is no GPU card:** the server reported no graphics device, or it is a type this check does not know. Virtual machine graphics adapters are not listed.
+- **The GPU card has no core count:** the count comes from the kernel's debug information, which is not always mounted or readable. The rest of the card still works.
+- **The GPU activity looks too high on Intel:** it measures time spent awake rather than real work, so it can read a few points high. Compare it with the Intel GPU Top plugin if you need exact engine figures.
+- **NVIDIA shows no load:** the load comes from `nvidia-smi`, which must be installed on the server. Without it the card shows only the device.
+
 ## Array operation progress
 
 - **There is no progress card during a rebuild:** the app reads it over SSH, or from the Unraid API when SSH is off. Older API versions may not offer it, so turn on SSH.

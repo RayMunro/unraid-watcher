@@ -17,7 +17,7 @@ Unraid Watcher shows you what your server is doing (array health, disks, contain
 - **Share management**, with a view of how any share is spread across your drives
 - **Cache clean-up:** find files the mover left behind (verified identical copies already on the array) and empty folders on your cache pools, with a preview, confirmation, and a byte-for-byte re-check before any file is deleted
 - **Deluge panel** (when the server runs Deluge): speeds, every torrent, and pause, resume, remove, and add controls
-- **Performance and network** views: per-core load, disk I/O, fans, CPU temperatures, and traffic
+- **Performance and network** views: per-core load labelled by core type (performance, efficiency, low-power), NPU and GPU activity, disk I/O, fans, CPU temperatures, and traffic
 - **macOS notifications** for hot disks, a hot CPU, SMART problems, and new Unraid alerts
 - **Menu bar** summary that is always one click away, with an option to launch at login
 - **Secure by default:** the API key and SSH password live in the macOS Keychain

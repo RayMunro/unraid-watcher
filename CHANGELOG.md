@@ -4,6 +4,14 @@
 
 All notable changes to Unraid Watcher are listed here.
 
+## 1.4.0
+
+### New
+
+- **Core types:** the CPU core bars on the Performance tab are now grouped and labelled by the type of core: performance cores, efficiency cores, and low-power efficiency cores on a hybrid Intel CPU, with each core's threads shown ("P-core 2, thread 1", "E-core 5"). Other CPUs show "Core N".
+- **NPU:** a card for the server's neural processing unit (such as Intel's AI Boost) with how busy it is, its clock speed, memory in use, and driver, when the driver provides them.
+- **GPU:** a card for each graphics device with its activity, clock speed, memory where reported, and name, and on Intel the number of cores (Xe-cores and execution units) when the kernel allows it. Intel, AMD, and NVIDIA are supported.
+
 ## 1.3.0
 
 ### New

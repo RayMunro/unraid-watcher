@@ -50,7 +50,9 @@ A summary of the whole server:
 ## Performance (SSH)
 
 - **Load and uptime:** 1, 5, and 15 minute load averages and uptime.
-- **CPU cores:** a usage bar for every core.
+- **CPU cores:** a usage bar for every core, grouped by the type of core and labelled with it. On a mixed ("hybrid") Intel CPU such as a Core Ultra, the bars fall under **Performance cores**, **Efficiency cores**, and **Low-power efficiency cores**, each with its core and thread count, and labels such as "P-core 2, thread 1" or "E-core 5". A performance core with hyper-threading shows two bars, one per thread. On an ordinary CPU every core is simply "Core 3", and bars are labelled "CPU 3" if the server cannot describe its layout. The layout is read once and remembered.
+- **NPU:** shown only when the server has a neural processing unit with a working driver, for example the "AI Boost" NPU in Intel Core Ultra chips. It shows how busy the NPU is (a bar, the percentage, and a short history), its clock speed, the memory it is using, and its driver. If the NPU is present but no driver is loaded, the card says so.
+- **GPU:** shown for each graphics device the server reports. It shows the GPU's activity as a bar and percentage with a short history, its clock speed, memory where the driver reports it, and its name. On Intel it also shows how many cores it has, for example "7 Xe-cores · 112 execution units", when the server's debug information allows it. Linux does not report load for individual GPU cores, so the figures are for the whole GPU. For Intel GPUs, activity is the share of time the GPU was awake, which follows real work closely but slightly overstates it. AMD and NVIDIA load is reported directly (NVIDIA needs `nvidia-smi` on the server).
 - **Memory:** usage with a breakdown of in-use, cache and buffers, available, shared, and dirty memory, plus swap if configured.
 - **Disk I/O:** read and write speed for every physical disk, labeled with the Unraid disk name.
 - **Fans:** fan speeds reported by the motherboard.

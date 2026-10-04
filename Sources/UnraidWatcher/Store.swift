@@ -67,6 +67,17 @@ final class Store: ObservableObject {
     @Published var uptimeSeconds: Double = 0
     @Published var mem: [String: Double] = [:]
     @Published var cores: [Double] = []
+    @Published var coreUsage: [Int: Double] = [:]
+    @Published var gpu = GPUState()
+    @Published var gpuActivity: [String: Double] = [:]
+    @Published var gpuHistory: [String: [Double]] = [:]
+    var gpuSamples: [String: (t: Date, idleMillis: Double)] = [:]
+    @Published var npu = NPUState()
+    @Published var npuUtilisation: Double?
+    @Published var npuHistory: [Double] = []
+    var npuSample: (t: Date, busyMicros: Double)?
+    @Published var cpuTopology: [CoreInfo] = []
+    var cpuTopologyTried = false
     @Published var mounts: [Mount] = []
     @Published var diskIO: [DiskIO] = []
     @Published var procs: [Proc] = []
@@ -223,6 +234,8 @@ final class Store: ObservableObject {
             let r = try await Remote.run(host: host, user: sshUser, password: sshPassword)
             let now = Date()
             updateArrayOperation(ArrayOperation.from(r.md), exit: r.md["sbSyncExit"])
+            updateNPU(r.npu)
+            updateGPU(r.gpu)
             temps = r.temps; fans = r.fans; load = r.load; uptimeSeconds = r.uptime; mem = r.mem
             mounts = r.mounts.sorted { $0.path < $1.path }; procs = r.procs; logLines = r.log
             if let cpu = r.temps.filter(\.isCPU).map(\.celsius).max() { tempHistory = Array((tempHistory + [cpu]).suffix(60)) }
@@ -234,8 +247,9 @@ final class Store: ObservableObject {
                 let idle = (v[3] + v[4]) - (old[3] + old[4])
                 if total > 0 { pct.append((n, max(0, min(100, 100 * (1 - idle / total))))) }
             }
-            if !pct.isEmpty { cores = pct.sorted { $0.0 < $1.0 }.map(\.1) }
+            if !pct.isEmpty { cores = pct.sorted { $0.0 < $1.0 }.map(\.1); coreUsage = Dictionary(uniqueKeysWithValues: pct) }
             lastCPU = r.cpu
+            if cpuTopology.isEmpty { Task { await loadCPUTopology() } }
             // network
             if let last = lastNet {
                 let dt = now.timeIntervalSince(last.time)

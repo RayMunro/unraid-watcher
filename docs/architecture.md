@@ -26,6 +26,9 @@ Sources/UnraidWatcher/
   LoginItem.swift                Launch at login and quiet start in the menu bar
   Deluge.swift                   Deluge Web UI client, models, and the Deluge panel
   ArrayOperation.swift           Progress of a rebuild, parity build, or check, and the card that shows it
+  CPUTopology.swift              Which kind of core each CPU is, and the core bars
+  NPU.swift                      Reading and showing a neural processing unit
+  GPU.swift                      Reading and showing graphics processors
   Spread.swift                   Share spread: per-disk measuring and the spread view
   CacheCleanup.swift             Empty-folder scan and delete scripts, and the clean-up sheet
   StrayFiles.swift               Finding cache files that are already on the array, and the verified delete
@@ -93,6 +96,9 @@ These are written as pure functions so they are easy to test in isolation:
 | `planClone` | Computes the XML and file copies needed to clone a VM |
 | `cleanupScanScript`, `parseEmptyRoots` | Build the read-only empty-folder scan and parse its output |
 | `cleanupDeleteScript`, `validCleanupPath` | Build the delete step and check every path stays inside the pool |
+| `classifyCores`, `CPUTopology.parse` | Decide from the layout files which logical CPUs are performance, efficiency, or low-power cores, and number them |
+| `NPUProbe.parse`, `npuBusyPercent` | Read NPU details, and turn its busy-time counter into a percentage |
+| `GPUProbe.parse`, `gpuActivePercent` | Read GPU details for Intel, AMD, and NVIDIA, and turn Intel's idle-time counter into an activity percentage |
 | `ArrayOperation.from` | Turns the array state values into an operation with a title, progress, and what it means for your data |
 | `strayScanScript`, `parseStrayScan` | Find cache files that also exist on an array disk, and whether they match |
 | `strayDeleteScript` | Re-verify each file against its array copy, byte for byte, and remove only those that still match |

@@ -31,6 +31,8 @@ struct RemoteSample {
     var procs: [Proc] = []
     var log: [String] = []
     var md: [String: String] = [:]         // array state values (var.ini)
+    var npu = NPUState()
+    var gpu = GPUState()
 }
 
 enum Remote {
@@ -55,6 +57,10 @@ enum Remote {
       done
     done
     echo ===MD; grep -E '^(mdState|mdResync|mdResyncPos|mdResyncSize|mdResyncAction|mdResyncDt|mdResyncDb|mdResyncCorr|sbSyncExit)=' /var/local/emhttp/var.ini 2>/dev/null
+    echo ===NPU
+    \(NPUProbe.script)
+    echo ===GPU
+    \(GPUProbe.script)
     echo ===LOAD; cat /proc/loadavg; cat /proc/uptime
     echo ===MEM; grep -E '^(MemTotal|MemFree|MemAvailable|Buffers|Cached|SwapTotal|SwapFree|Dirty|Shmem):' /proc/meminfo
     echo ===CPU; grep '^cpu' /proc/stat
@@ -161,6 +167,8 @@ enum Remote {
         var r = RemoteSample()
         var mode = ""
         var loadLines = 0
+        var npuLines: [String] = []
+        var gpuLines: [String] = []
         func sensor(_ l: String) -> (String, String, Double, String)? {
             let p = l.split(separator: "|", omittingEmptySubsequences: false).map(String.init)
             guard p.count >= 3, let v = Double(p[2].trimmingCharacters(in: .whitespaces)) else { return nil }
@@ -187,6 +195,8 @@ enum Remote {
                     let v = String(l[l.index(after: eq)...]).trimmingCharacters(in: .whitespaces)
                     r.md[String(l[..<eq])] = v.hasPrefix("\"") && v.hasSuffix("\"") && v.count >= 2 ? String(v.dropFirst().dropLast()) : v
                 }
+            case "===NPU": npuLines.append(l)
+            case "===GPU": gpuLines.append(l)
             case "===LOAD":
                 if loadLines == 0 { r.load = f.prefix(3).compactMap { Double($0) } }
                 else if let u = f.first.flatMap(Double.init) { r.uptime = u }
@@ -214,6 +224,8 @@ enum Remote {
             default: break
             }
         }
+        r.npu = NPUProbe.parse(npuLines)
+        r.gpu = GPUProbe.parse(gpuLines)
         // Number chips that exist on several devices, and put sensors in a stable natural order (Package first, then Core 0, 1, 2 ... 10).
         let sources = Dictionary(grouping: r.temps, by: \.chip).mapValues { Array(Set($0.map(\.source))).sorted { $0.localizedStandardCompare($1) == .orderedAscending } }
         r.temps = r.temps.map { t in

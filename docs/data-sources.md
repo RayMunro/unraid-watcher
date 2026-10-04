@@ -59,6 +59,9 @@ A single connection reads, in one batch:
 - `/proc/meminfo` for memory detail
 - `/proc/stat` for per-core CPU
 - `df` for mounted filesystems
+- `/sys/class/accel` for the NPU: its busy time, clock speed, and memory in use (the `intel_vpu` driver), plus a scan of the PCI bus for processing accelerators
+- `/sys/class/drm` for each GPU: clock speed and idle time (Intel `i915` and `xe`), busy percent and memory (AMD), and `nvidia-smi` for NVIDIA cards when it is installed
+- `/sys/kernel/debug/dri` for an Intel GPU's core count, when the kernel's debug files are readable
 - `/proc/diskstats` for disk I/O
 - `ps` for the top processes
 - the last 250 lines of `/var/log/syslog`
@@ -78,6 +81,7 @@ A single connection reads, in one batch:
 | Share settings | reading `/boot/config/shares/*.cfg` |
 | Share disk usage | `du -sk /mnt/*/<share>` |
 | Share create, edit, delete | a request to Unraid's own web interface endpoint on the server (`/update.htm`, over its local socket when available), authenticated with the server's own token |
+| CPU core layout | Read once per server: `/sys/devices/system/cpu/cpu*` (thread siblings, top speed, capacity) and `/sys/devices/cpu_core` and `cpu_atom`, which list the performance and efficiency cores on a hybrid Intel CPU |
 | Share spread | A listing of `/mnt/*/<share>` to find where the share lives, then `du -sk` on each location, one at a time, at idle priority (`nice`, `ionice`) with a 10 minute `timeout` when those exist |
 | Cache clean-up scan | `find`, `sort`, `awk`, `comm` and `stat` over the pool, read-only, at low priority (`nice`, `ionice`) and with a `timeout` when those exist |
 | Cache clean-up: files already on the array, scan | `find` over the pool (skipping your skipped folders), then for each file a check of `/mnt/disk*` for the same path, comparing size and date (`stat`) or every byte (`cmp`). Read-only, at idle priority with a 15 minute limit |

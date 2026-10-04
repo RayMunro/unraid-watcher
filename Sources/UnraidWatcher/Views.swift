@@ -395,16 +395,10 @@ struct PerformanceView: View {
                 }
             }
             Card(title: "CPU cores") {
-                if s.cores.isEmpty { Text("Collecting a second sample…").foregroundStyle(.secondary) }
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14)], spacing: 10) {
-                    ForEach(Array(s.cores.enumerated()), id: \.offset) { i, v in
-                        VStack(alignment: .leading, spacing: 3) {
-                            HStack { Text("Core \(i)").font(.caption); Spacer(); Text("\(Int(v))%").font(.caption.monospacedDigit()) }
-                            UsageBar(fraction: v / 100)
-                        }
-                    }
-                }
+                CoreBars()
             }
+            NPUCard()
+            GPUCards()
             Card(title: "Memory") {
                 let total = kb("MemTotal"), avail = kb("MemAvailable")
                 let cache = kb("Cached") + kb("Buffers")
