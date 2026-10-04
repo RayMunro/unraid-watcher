@@ -22,7 +22,7 @@ func migrateOldDefaults() {
 func showAboutPanel() {
     NSApp.orderFrontStandardAboutPanel(options: [
         .applicationName: "Unraid Watcher",
-        .applicationVersion: "1.2.0",
+        .applicationVersion: "1.3.0",
         .version: "",
         .credits: NSAttributedString(string: "A native Mac dashboard and control panel for your Unraid server.\n\n\(copyrightLine). Licensed under the GNU GPL v3 or later.",
                                      attributes: [.font: NSFont.systemFont(ofSize: 11), .foregroundColor: NSColor.secondaryLabelColor]),

@@ -4,21 +4,21 @@
 
 All notable changes to Unraid Watcher are listed here.
 
-## Unreleased
+## 1.3.0
 
-New:
+### New
 
 - **Array operation progress:** while the array is rebuilding a disk, building parity, running a parity check, or clearing a disk, the Overview shows a progress bar with the percentage, how much is done, the speed, and about how long is left, with a note on what it means for your data. The percentage also shows beside Overview in the sidebar, in the menu bar, and on each server's card. You get a notification when it ends. The Controls tab shows the same progress with Pause and Cancel.
-
 - **Share spread:** open any share and see how it is spread across your drives, measured one disk at a time with a stacked bar, a table of sizes and percentages, and the disks it is not on. You can stop it part-way.
 - **Cache clean-up for files the mover left behind:** the same scan now also finds files on your cache pools that already exist, at the same path, on an array disk. They are listed with the disk that holds the copy. A file is only ever offered, and only ever deleted, when the array copy matches, and the delete step compares the two byte for byte again just before removing each file. Files that differ, changed recently, sit in skipped folders, or are links are never touched, and deleting is refused while the mover is running.
 - **Cache clean-up:** scan your cache pools for empty folders and remove the ones you choose. The scan only reads, skips `appdata`, `system` and `domains` by default, ignores recently changed folders, and deletes only folders that are still empty at the moment of deletion.
 
-Fixes found by running the app against a real server.
+### Fixed
+
+Found by running the app against a real server.
 
 - **Stop buttons:** stopping a long scan or measurement returns at once. Before, with a shared SSH connection, a cancelled command kept the app waiting until the command ended on its own.
 - **Controls:** the confirmations for stop array, a correcting parity check, spin down all disks, reboot, and shut down never appeared, so those buttons did nothing. They now ask first, and the question names the server. Nothing ran in the meantime, so no action was taken by accident.
-
 - **SSH:** one connection is now shared and reused, instead of a new login on every refresh. This stops the server's log filling with login lines and makes refreshes faster.
 - **Logs:** shows the last 250 lines and hides the app's own SSH login lines by default, with a switch to show them.
 - **Array problems:** a disk Unraid reports as disabled or invalid now shows in red, in an Array problems card on the Overview, and triggers a notification. It was grey before.

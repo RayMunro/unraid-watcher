@@ -9,7 +9,7 @@ Usage: python3 tools/make_docs_pdf.py [output.pdf]
 import base64, html, pathlib, re, subprocess, sys, tempfile, time
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSION = "1.2.0"
+VERSION = "1.3.0"
 REPO = "https://github.com/RayMunro/unraid-watcher"
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
